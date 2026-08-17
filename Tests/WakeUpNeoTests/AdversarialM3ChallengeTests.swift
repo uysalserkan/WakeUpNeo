@@ -113,16 +113,16 @@ final class AdversarialM3ChallengeTests: XCTestCase {
     private var defaults: UserDefaults!
     private var testSuiteName: String!
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         testSuiteName = "com.wakeupneo.tests.adversarial.m3.\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: testSuiteName)!
     }
 
-    override func tearDown() async throws {
-        defaults.removePersistentDomain(forName: testSuiteName)
+    override func tearDownWithError() throws {
+        defaults?.removePersistentDomain(forName: testSuiteName)
         defaults = nil
-        try await super.tearDown()
+        try super.tearDownWithError()
     }
 
     // MARK: - 1. Rapid Concurrent Notification Dispatches

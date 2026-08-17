@@ -17,8 +17,8 @@ final class SleepManagerTests: XCTestCase {
     var composite:   CompositeSleepService!
     var manager:     SleepManager!
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         systemMock  = MockSleepService()
         displayMock = MockSleepService()
         lidMock     = MockSleepService()
@@ -30,9 +30,9 @@ final class SleepManagerTests: XCTestCase {
         manager = SleepManager(compositeService: composite)
     }
 
-    override func tearDown() async throws {
-        manager.stop()
-        try await super.tearDown()
+    override func tearDownWithError() throws {
+        manager?.stop()
+        try super.tearDownWithError()
     }
 
     // MARK: - Test 1: starts indefinite session

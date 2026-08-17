@@ -17,8 +17,8 @@ final class SleepManagerFileWatcherTests: XCTestCase {
     var manager: SleepManager!
     var tempDir: TestTempDirectory!
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         systemMock = MockSleepService()
         displayMock = MockSleepService()
         composite = CompositeSleepService(
@@ -33,10 +33,10 @@ final class SleepManagerFileWatcherTests: XCTestCase {
         tempDir = try TestTempDirectory(prefix: "SleepManagerFileWatcherTests")
     }
 
-    override func tearDown() async throws {
-        manager.stop()
-        tempDir.cleanup()
-        try await super.tearDown()
+    override func tearDownWithError() throws {
+        manager?.stop()
+        tempDir?.cleanup()
+        try super.tearDownWithError()
     }
 
     // MARK: - Tier 1: Download Watching Lifecycle

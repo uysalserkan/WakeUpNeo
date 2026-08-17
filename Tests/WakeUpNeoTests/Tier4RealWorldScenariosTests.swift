@@ -23,8 +23,8 @@ final class Tier4RealWorldScenariosTests: XCTestCase {
     var sleepManager: SleepManager!
     var tempDir: TestTempDirectory!
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         systemMock = MockSleepService()
         displayMock = MockSleepService()
         composite = CompositeSleepService(
@@ -39,11 +39,11 @@ final class Tier4RealWorldScenariosTests: XCTestCase {
         tempDir = try TestTempDirectory(prefix: "Tier4RealWorldScenarios")
     }
 
-    override func tearDown() async throws {
-        sleepManager.stop()
-        watcher.stop()
-        tempDir.cleanup()
-        try await super.tearDown()
+    override func tearDownWithError() throws {
+        sleepManager?.stop()
+        watcher?.stop()
+        tempDir?.cleanup()
+        try super.tearDownWithError()
     }
 
     // MARK: - Scenario 1: Chrome / Chromium Large File Download Simulation

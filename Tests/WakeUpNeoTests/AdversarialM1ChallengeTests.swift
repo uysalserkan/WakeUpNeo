@@ -24,16 +24,16 @@ final class AdversarialM1ChallengeTests: XCTestCase {
     var tempDir: TestTempDirectory!
     var watcher: DefaultFileWatcherService!
     
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         tempDir = try TestTempDirectory(prefix: "AdversarialM1ChallengeTests")
         watcher = DefaultFileWatcherService()
     }
     
-    override func tearDown() async throws {
-        watcher.stop()
-        tempDir.cleanup()
-        try await super.tearDown()
+    override func tearDownWithError() throws {
+        watcher?.stop()
+        tempDir?.cleanup()
+        try super.tearDownWithError()
     }
     
     // MARK: - 1. Adversarial Pattern Matching & Extension Normalization

@@ -29,18 +29,18 @@ final class AdversarialM3SettingsChallengeTests: XCTestCase {
     private var testDefaults: UserDefaults!
     private var tempDir: TestTempDirectory!
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         testSuiteName = "com.wakeupneo.tests.adversarial.m3.\(UUID().uuidString)"
         testDefaults = UserDefaults(suiteName: testSuiteName)!
         tempDir = try TestTempDirectory(prefix: "AdvM3Settings")
     }
 
-    override func tearDown() async throws {
-        testDefaults.removePersistentDomain(forName: testSuiteName)
+    override func tearDownWithError() throws {
+        testDefaults?.removePersistentDomain(forName: testSuiteName)
         testDefaults = nil
-        tempDir.cleanup()
-        try await super.tearDown()
+        tempDir?.cleanup()
+        try super.tearDownWithError()
     }
 
     // MARK: - 1. Custom Extensions Edge Cases

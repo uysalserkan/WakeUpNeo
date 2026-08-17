@@ -40,8 +40,8 @@ final class AdversarialM2ChallengeTests: XCTestCase {
     private var manager: SleepManager!
     private var tempDir: TestTempDirectory!
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         systemMock = MockSleepService()
         displayMock = MockSleepService()
         composite = CompositeSleepService(
@@ -56,10 +56,10 @@ final class AdversarialM2ChallengeTests: XCTestCase {
         tempDir = try TestTempDirectory(prefix: "AdversarialM2ChallengeTests")
     }
 
-    override func tearDown() async throws {
-        manager.stop()
-        tempDir.cleanup()
-        try await super.tearDown()
+    override func tearDownWithError() throws {
+        manager?.stop()
+        tempDir?.cleanup()
+        try super.tearDownWithError()
     }
 
     // MARK: - 1. Repeated Rapid Starts and Stops Stress

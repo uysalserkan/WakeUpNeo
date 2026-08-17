@@ -5,14 +5,14 @@ final class FileStabilityCheckerTests: XCTestCase {
     
     var tempDir: TestTempDirectory!
     
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         tempDir = try TestTempDirectory(prefix: "FileStabilityCheckerTests")
     }
     
-    override func tearDown() async throws {
-        tempDir.cleanup()
-        try await super.tearDown()
+    override func tearDownWithError() throws {
+        tempDir?.cleanup()
+        try super.tearDownWithError()
     }
     
     // MARK: - Tier 1: Core Stability Evaluation

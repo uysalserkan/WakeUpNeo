@@ -11,8 +11,8 @@ final class TimerTests: XCTestCase {
 
     var manager: SleepManager!
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         let systemMock  = MockSleepService()
         let displayMock = MockSleepService()
         let composite   = CompositeSleepService(
@@ -22,9 +22,9 @@ final class TimerTests: XCTestCase {
         manager = SleepManager(compositeService: composite)
     }
 
-    override func tearDown() async throws {
-        manager.stop()
-        try await super.tearDown()
+    override func tearDownWithError() throws {
+        manager?.stop()
+        try super.tearDownWithError()
     }
 
     // MARK: - Countdown accuracy
