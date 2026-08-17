@@ -37,6 +37,9 @@ let package = Package(
             name: "WakeUpNeoTests",
             dependencies: ["WakeUpNeoCore"],
             path: "Tests/WakeUpNeoTests",
+            swiftSettings: [
+                .unsafeFlags(["-strict-concurrency=minimal"])
+            ],
             linkerSettings: [
                 .linkedFramework("IOKit")
             ]
