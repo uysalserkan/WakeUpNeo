@@ -43,16 +43,16 @@ final class FileWatcherTests: XCTestCase {
     var tempDir: TestTempDirectory!
     var watcher: DefaultFileWatcherService!
     
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        tempDir = try TestTempDirectory(prefix: "FileWatcherTests")
+    override func setUp() {
+        super.setUp()
+        tempDir = try! TestTempDirectory(prefix: "FileWatcherTests")
         watcher = DefaultFileWatcherService()
     }
     
-    override func tearDownWithError() throws {
+    override func tearDown() {
         watcher?.stop()
         tempDir?.cleanup()
-        try super.tearDownWithError()
+        super.tearDown()
     }
     
     // MARK: - Tier 1: Download Watching Lifecycle

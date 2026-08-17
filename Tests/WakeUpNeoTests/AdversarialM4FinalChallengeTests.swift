@@ -43,8 +43,8 @@ final class AdversarialM4FinalChallengeTests: XCTestCase {
     var sleepManager: SleepManager!
     var tempDir: TestTempDirectory!
     
-    override func setUpWithError() throws {
-        try super.setUpWithError()
+    override func setUp() {
+        super.setUp()
         systemMock = MockSleepService()
         displayMock = MockSleepService()
         composite = CompositeSleepService(
@@ -56,14 +56,14 @@ final class AdversarialM4FinalChallengeTests: XCTestCase {
             compositeService: composite,
             fileWatcherService: watcher
         )
-        tempDir = try TestTempDirectory(prefix: "AdversarialM4FinalChallenge")
+        tempDir = try! TestTempDirectory(prefix: "AdversarialM4FinalChallenge")
     }
     
-    override func tearDownWithError() throws {
+    override func tearDown() {
         sleepManager?.stop()
         watcher?.stop()
         tempDir?.cleanup()
-        try super.tearDownWithError()
+        super.tearDown()
     }
     
     // MARK: - 1. Pattern Matcher: Chaotic & Malformed Inputs Oracle

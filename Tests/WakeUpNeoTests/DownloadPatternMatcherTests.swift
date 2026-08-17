@@ -5,14 +5,14 @@ final class DownloadPatternMatcherTests: XCTestCase {
     
     var tempDir: TestTempDirectory!
     
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        tempDir = try TestTempDirectory(prefix: "DownloadPatternMatcherTests")
+    override func setUp() {
+        super.setUp()
+        tempDir = try! TestTempDirectory(prefix: "DownloadPatternMatcherTests")
     }
     
-    override func tearDownWithError() throws {
+    override func tearDown() {
         tempDir?.cleanup()
-        try super.tearDownWithError()
+        super.tearDown()
     }
     
     // MARK: - Tier 1: Pattern Matching & Extension Classification
