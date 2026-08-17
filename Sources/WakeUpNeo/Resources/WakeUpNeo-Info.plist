@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Application Identity -->
+    <key>CFBundleName</key>
+    <string>WakeUpNeo</string>
+    <key>CFBundleDisplayName</key>
+    <string>WakeUpNeo</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.wakeupneo.app</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>WakeUpNeo</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+
+    <!--
+        LSUIElement = YES
+        This is the key that makes WakeUpNeo a menu-bar-only application.
+        It suppresses the Dock icon and Cmd+Tab entry entirely.
+    -->
+    <key>LSUIElement</key>
+    <true/>
+
+    <!-- Minimum macOS version (update to 26.0 for Xcode 26 SDK) -->
+    <key>LSMinimumSystemVersion</key>
+    <string>15.0</string>
+
+    <!-- Copyright -->
+    <key>NSHumanReadableCopyright</key>
+    <string>© 2026 WakeUpNeo. All rights reserved.</string>
+
+    <!-- Human Interface Guidelines: principal class -->
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+
+    <!-- UserNotifications usage description (required for notification permission dialog) -->
+    <key>NSUserNotificationAlertStyle</key>
+    <string>alert</string>
+</dict>
+</plist>
