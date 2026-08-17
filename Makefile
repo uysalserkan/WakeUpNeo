@@ -5,7 +5,7 @@ APP_DIR    := /Applications/$(APP_NAME).app
 INFO_PLIST := Sources/WakeUpNeo/Resources/WakeUpNeo-Info.plist
 RESOURCES  := Sources/WakeUpNeo/Resources
 
-.PHONY: all help build bundle install clean test
+.PHONY: all help build bundle package install clean test
 
 all: help
 
@@ -16,6 +16,7 @@ help:
 	@echo "  make build    - Compile the release executable with SwiftPM"
 	@echo "  make test     - Run the complete 4-tier automated test suite (203 tests)"
 	@echo "  make bundle   - Assemble and codesign the macOS .app bundle in ./build"
+	@echo "  make package  - Create a distributable .zip archive and SHA256 checksum"
 	@echo "  make install  - Build, bundle, and install WakeUpNeo to /Applications"
 	@echo "  make clean    - Clean SwiftPM build artifacts and temporary files"
 	@echo ""
@@ -37,6 +38,13 @@ bundle: build
 	cp $(RESOURCES)/AppIcon.icns $(BUNDLE_DIR)/Contents/Resources/AppIcon.icns 2>/dev/null || true
 	codesign --sign - --force --deep $(BUNDLE_DIR)
 	@echo "Successfully assembled $(BUNDLE_DIR)"
+
+## package: create distributable zip archive and sha256 checksum in ./build
+package: bundle
+	cd build && zip -r -y $(APP_NAME)-macOS.zip $(APP_NAME).app
+	cd build && shasum -a 256 $(APP_NAME)-macOS.zip > $(APP_NAME)-macOS.zip.sha256
+	@echo "Packaged build/$(APP_NAME)-macOS.zip"
+	@cat build/$(APP_NAME)-macOS.zip.sha256
 
 ## install: build and install into /Applications
 install: bundle

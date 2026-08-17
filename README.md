@@ -10,7 +10,8 @@ A sleek, lightweight, native macOS menu bar utility that prevents your Mac from 
 
 [![macOS 15+](https://img.shields.io/badge/macOS-15%2B-blue.svg?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Swift 6.0](https://img.shields.io/badge/Swift-6.0-F05138.svg?style=flat-square&logo=swift)](https://swift.org)
-[![Strict Concurrency](https://img.shields.io/badge/Swift_6-Strict_Concurrency-success.svg?style=flat-square)](https://www.swift.org/migration/)
+[![CI](https://github.com/uysalserkan/WakeUpNeo/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uysalserkan/WakeUpNeo/actions/workflows/ci.yml)
+[![Release](https://github.com/uysalserkan/WakeUpNeo/actions/workflows/release.yml/badge.svg)](https://github.com/uysalserkan/WakeUpNeo/releases)
 [![Tests](https://img.shields.io/badge/Tests-203_Passing-brightgreen.svg?style=flat-square)](TEST_READY.md)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero-informational.svg?style=flat-square)](#architecture)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
@@ -44,7 +45,13 @@ Have you ever started a large download, long build, or video render, stepped awa
 
 ### Installation
 
-#### Option 1: One-Command Build & Install (Recommended)
+#### Option 1: Direct Download (Pre-built Release)
+
+1. Download the latest `WakeUpNeo-macOS.zip` from [GitHub Releases](https://github.com/uysalserkan/WakeUpNeo/releases/latest).
+2. Unzip and drag `WakeUpNeo.app` into your `/Applications` folder.
+3. Launch WakeUpNeo — it will appear directly in your top menu bar!
+
+#### Option 2: One-Command Build & Install from Source (Recommended for Developers)
 
 Clone the repository and install directly to `/Applications/WakeUpNeo.app`:
 
@@ -56,7 +63,7 @@ make install
 
 This compiles the release binary, creates the `.app` bundle, attaches the native app icon and metadata, code-signs with an ad-hoc signature, and places it in your `/Applications` folder.
 
-#### Option 2: Swift Package Manager (Build from Source)
+#### Option 3: Swift Package Manager (Build from Source)
 
 ```bash
 git clone https://github.com/uysalserkan/WakeUpNeo.git
@@ -66,7 +73,7 @@ swift build -c release
 
 The compiled binary will be located in `.build/release/WakeUpNeo`.
 
-#### Option 3: Open in Xcode
+#### Option 4: Open in Xcode
 
 ```bash
 open Package.swift

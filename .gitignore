@@ -32,3 +32,6 @@ xcuserdata/
 *.cer
 *.certSigningRequest
 ExportOptions.plist
+
+# Internal
+.agents/
