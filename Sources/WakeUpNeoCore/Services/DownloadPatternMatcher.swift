@@ -45,7 +45,16 @@ public enum DownloadPatternMatcher: Sendable {
         // Strip trailing slash if directory-like path
         let cleaned = trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
         let url = URL(fileURLWithPath: cleaned)
-        let ext = url.pathExtension.lowercased()
+        // Derive the extension from the path component instead of URL.pathExtension.
+        // The URL API can return an empty extension for very long components on
+        // some macOS Foundation versions, while custom extensions are unbounded.
+        let lastPathComponent = url.lastPathComponent
+        let ext: String
+        if let dot = lastPathComponent.lastIndex(of: ".") {
+            ext = String(lastPathComponent[lastPathComponent.index(after: dot)...]).lowercased()
+        } else {
+            ext = ""
+        }
         
         let targetExtensions = effectiveExtensions(customExtensions: customExtensions)
         
@@ -55,7 +64,7 @@ public enum DownloadPatternMatcher: Sendable {
         }
         
         // 2. Suffix check for files without stem or packages (e.g. ".crdownload" or "bundle.download")
-        let lowercasedName = url.lastPathComponent.lowercased()
+        let lowercasedName = lastPathComponent.lowercased()
         for targetExt in targetExtensions {
             if lowercasedName.hasSuffix("." + targetExt) {
                 return true
