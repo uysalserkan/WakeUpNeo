@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        xcode: ['16.0', '16.1', 'latest']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: |
+          if [ "${{ matrix.xcode }}" != "latest" ]; then
+            sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app || true
+          fi
+          xcodebuild -version
+          swift --version
+
+      - name: Build Debug
+        run: swift build
+
+      - name: Run 4-Tier Test Suite
+        run: swift test --parallel
+
+      - name: Build Release Executable
+        run: swift build -c release
+
+      - name: Verify Application Bundle Assembly
+        run: make bundle
+
+      - name: Verify Bundle Integrity & Code Signature
+        run: |
+          test -d build/WakeUpNeo.app
+          test -f build/WakeUpNeo.app/Contents/MacOS/WakeUpNeo
+          test -f build/WakeUpNeo.app/Contents/Info.plist
+          codesign --verify --deep --strict build/WakeUpNeo.app

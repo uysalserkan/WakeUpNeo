@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name (e.g. v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Version
+        id: version
+        run: |
+          if [ -n "${{ inputs.tag_name }}" ]; then
+            TAG="${{ inputs.tag_name }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Building Release for Tag: ${TAG} (Version: ${VERSION})"
+
+      - name: Select Xcode & Swift Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Run Full Test Suite
+        run: swift test
+
+      - name: Build & Assemble .app Bundle
+        run: make bundle
+
+      - name: Package Distributable ZIP & Generate SHA256 Checksum
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ZIP_NAME="WakeUpNeo-${VERSION}-macOS.zip"
+          SHA_NAME="WakeUpNeo-${VERSION}-macOS.zip.sha256"
+          
+          cd build
+          # Archive the .app preserving symlinks, metadata, and permissions
+          zip -r -y "${ZIP_NAME}" WakeUpNeo.app
+          shasum -a 256 "${ZIP_NAME}" > "${SHA_NAME}"
+          
+          echo "ZIP created: ${ZIP_NAME}"
+          cat "${SHA_NAME}"
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: WakeUpNeo ${{ steps.version.outputs.tag }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            build/WakeUpNeo-${{ steps.version.outputs.version }}-macOS.zip
+            build/WakeUpNeo-${{ steps.version.outputs.version }}-macOS.zip.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
