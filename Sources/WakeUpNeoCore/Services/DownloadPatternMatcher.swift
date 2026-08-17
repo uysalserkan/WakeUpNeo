@@ -44,11 +44,13 @@ public enum DownloadPatternMatcher: Sendable {
         
         // Strip trailing slash if directory-like path
         let cleaned = trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
-        let url = URL(fileURLWithPath: cleaned)
         // Derive the extension from the path component instead of URL.pathExtension.
         // The URL API can return an empty extension for very long components on
         // some macOS Foundation versions, while custom extensions are unbounded.
-        let lastPathComponent = url.lastPathComponent
+        let lastPathComponent = cleaned
+            .split(separator: "/", omittingEmptySubsequences: true)
+            .last
+            .map(String.init) ?? cleaned
         let ext: String
         if let dot = lastPathComponent.lastIndex(of: ".") {
             ext = String(lastPathComponent[lastPathComponent.index(after: dot)...]).lowercased()

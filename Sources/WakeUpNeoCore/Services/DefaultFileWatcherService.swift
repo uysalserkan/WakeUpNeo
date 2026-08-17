@@ -110,8 +110,9 @@ public final class DefaultFileWatcherService: FileWatchingService, @unchecked Se
             timer.resume()
         }
         
-        // Initial scan executed immediately on serial queue
-        queue.async { [weak self] in
+        // Complete the initial scan before returning so callers can safely
+        // inspect the initial active-download state before renaming a file.
+        queue.sync { [weak self] in
             self?.performScan()
         }
     }
