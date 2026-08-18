@@ -49,7 +49,10 @@ final class UIIntegrationTests: XCTestCase {
             AppSettingsKeys.customTemporaryExtensions,
             AppSettingsKeys.fileStabilizationDuration,
             AppSettingsKeys.notifyOnDownloadsComplete,
-            AppSettingsKeys.notifyOnFileDetected
+            AppSettingsKeys.notifyOnFileDetected,
+            AppSettingsKeys.notifyOnProcessTerminated,
+            AppSettingsKeys.checkForUpdatesAutomatically,
+            AppSettingsKeys.lastUpdateCheckTimestamp
         ]
 
         for key in keys {
@@ -77,6 +80,9 @@ final class UIIntegrationTests: XCTestCase {
         XCTAssertEqual(settings.fileStabilizationDuration, 2.0)
         XCTAssertTrue(settings.notifyOnDownloadsComplete)
         XCTAssertTrue(settings.notifyOnFileDetected)
+        XCTAssertTrue(settings.notifyOnProcessTerminated)
+        XCTAssertTrue(settings.checkForUpdatesAutomatically)
+        XCTAssertEqual(settings.lastUpdateCheckTimestamp, 0.0)
         XCTAssertEqual(settings.watchedDownloadsURL, AppSettings.defaultDownloadsURL)
         XCTAssertTrue(settings.parsedCustomExtensions.isEmpty)
     }
@@ -248,6 +254,7 @@ final class UIIntegrationTests: XCTestCase {
         XCTAssertEqual(Notification.Name.wakeUpNeoSessionExpired.rawValue, "com.wakeupneo.sessionExpired")
         XCTAssertEqual(Notification.Name.wakeUpNeoDownloadsCompleted.rawValue, "com.wakeupneo.downloadsCompleted")
         XCTAssertEqual(Notification.Name.wakeUpNeoFileDetected.rawValue, "com.wakeupneo.fileDetected")
+        XCTAssertEqual(Notification.Name.wakeUpNeoProcessTerminated.rawValue, "com.wakeupneo.processTerminated")
 
         let service = NotificationService()
         let dir = URL(fileURLWithPath: "/Users/test/Downloads")
@@ -260,14 +267,25 @@ final class UIIntegrationTests: XCTestCase {
         service.sendDownloadsCompletedNotification(directory: dir)
         service.sendDownloadsCompletedNotification(directory: nil)
         service.sendFileDetectedNotification(targetURL: fileURL)
+        service.sendProcessTerminatedNotification(processName: "Xcode", pid: 1234)
+
+        let release = GitHubRelease(
+            id: 1,
+            tagName: "v1.0.5",
+            name: "WakeUpNeo 1.0.5",
+            htmlURL: URL(string: "https://github.com/uysalserkan/wakeupneo/releases/tag/v1.0.5")!
+        )
+        service.sendUpdateAvailableNotification(release: release)
     }
 
     func testNotificationCenterObserverPayloadsForSmartWatchers() async {
         let expectedDir = URL(fileURLWithPath: "/Users/test/Downloads")
         let expectedTarget = URL(fileURLWithPath: "/Users/test/Downloads/result.zip")
+        let expectedProcess = MonitoredProcessInfo(pid: 9999, name: "TestProcess")
 
         var receivedDir: URL?
         var receivedTarget: URL?
+        var receivedProcess: MonitoredProcessInfo?
         var expiredCount = 0
 
         let token1 = NotificationCenter.default.addObserver(
@@ -294,22 +312,33 @@ final class UIIntegrationTests: XCTestCase {
             expiredCount += 1
         }
 
+        let token4 = NotificationCenter.default.addObserver(
+            forName: .wakeUpNeoProcessTerminated,
+            object: nil,
+            queue: .main
+        ) { notification in
+            receivedProcess = notification.object as? MonitoredProcessInfo
+        }
+
         defer {
             NotificationCenter.default.removeObserver(token1)
             NotificationCenter.default.removeObserver(token2)
             NotificationCenter.default.removeObserver(token3)
+            NotificationCenter.default.removeObserver(token4)
         }
 
         // Post notifications
         NotificationCenter.default.post(name: .wakeUpNeoDownloadsCompleted, object: expectedDir)
         NotificationCenter.default.post(name: .wakeUpNeoFileDetected, object: expectedTarget)
         NotificationCenter.default.post(name: .wakeUpNeoSessionExpired, object: nil)
+        NotificationCenter.default.post(name: .wakeUpNeoProcessTerminated, object: expectedProcess)
 
         // Yield to allow main queue dispatch
         try? await Task.sleep(for: .milliseconds(50))
 
         XCTAssertEqual(receivedDir, expectedDir)
         XCTAssertEqual(receivedTarget, expectedTarget)
+        XCTAssertEqual(receivedProcess, expectedProcess)
         XCTAssertEqual(expiredCount, 1)
     }
 
@@ -405,5 +434,14 @@ final class UIIntegrationTests: XCTestCase {
 
         let sMax = AppSettings(fileStabilizationDuration: maxDuration)
         XCTAssertEqual(sMax.fileStabilizationDuration, 30.0)
+    }
+
+    func testActiveIconColorCases() {
+        for color in ActiveIconColor.allCases {
+            XCTAssertFalse(color.rawValue.isEmpty)
+            XCTAssertFalse(color.label.isEmpty)
+            XCTAssertEqual(ActiveIconColor(rawValue: color.rawValue), color)
+        }
+        XCTAssertEqual(ActiveIconColor(rawValue: "invalid"), nil)
     }
 }

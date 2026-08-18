@@ -94,6 +94,29 @@ public final class NotificationService: Sendable {
         schedule(content, identifier: "com.wakeupneo.fileDetected.\(UUID().uuidString)")
     }
 
+    // MARK: - Process Terminated
+
+    /// "Application '<processName>' has terminated. Your Mac can sleep normally again."
+    public func sendProcessTerminatedNotification(processName: String, pid: Int32) {
+        let content       = UNMutableNotificationContent()
+        content.title     = "Application Terminated"
+        content.body      = "Monitored application '\(processName)' (PID \(pid)) has ended. Your Mac can sleep normally again."
+        content.sound     = .default
+
+        schedule(content, identifier: "com.wakeupneo.processTerminated.\(UUID().uuidString)")
+    }
+
+    // MARK: - Update Available
+    public func sendUpdateAvailableNotification(release: GitHubRelease) {
+        let content       = UNMutableNotificationContent()
+        content.title     = "WakeUpNeo Update Available"
+        content.body      = "\(release.displayTitle) is now available. Click to view and update."
+        content.sound     = .default
+
+        // Replace any prior update notification rather than stacking duplicates
+        schedule(content, identifier: "com.wakeupneo.updateAvailable")
+    }
+
     // MARK: - Private
 
     private func schedule(_ content: UNNotificationContent, identifier: String) {
@@ -121,4 +144,7 @@ public extension Notification.Name {
 
     /// Posted on the main thread when a monitored target file is detected & stabilized, and sleep prevention is released.
     static let wakeUpNeoFileDetected = Notification.Name("com.wakeupneo.fileDetected")
+
+    /// Posted on the main thread when a monitored process/application terminates, and sleep prevention is released.
+    static let wakeUpNeoProcessTerminated = Notification.Name("com.wakeupneo.processTerminated")
 }

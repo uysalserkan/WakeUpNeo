@@ -22,6 +22,9 @@ struct MonitoringSettingsView: View {
     @AppStorage(AppSettingsKeys.notifyOnFileDetected)
     private var notifyOnFileDetected: Bool = true
 
+    @AppStorage(AppSettingsKeys.notifyOnProcessTerminated)
+    private var notifyOnProcessTerminated: Bool = true
+
     private var isCustomPath: Bool {
         watchedDownloadsPath != AppSettings.defaultDownloadsURL.path(percentEncoded: false)
     }
@@ -127,6 +130,10 @@ struct MonitoringSettingsView: View {
                 Toggle("Notify when target file is ready", isOn: $notifyOnFileDetected)
                     .accessibilityLabel("Notify when target file is ready")
                     .accessibilityHint("Send a system notification when a monitored target file appears and stabilizes")
+
+                Toggle("Notify when watched application terminates", isOn: $notifyOnProcessTerminated)
+                    .accessibilityLabel("Notify when watched application terminates")
+                    .accessibilityHint("Send a system notification when a monitored application exits")
             }
         }
         .formStyle(.grouped)

@@ -44,21 +44,29 @@ struct SettingsView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             GeneralSettingsView()
-                .tabItem { Label(SettingsTab.general.title, systemImage: SettingsTab.general.iconName) }
+                .tabItem {
+                    Label(SettingsTab.general.title, systemImage: SettingsTab.general.iconName)
+                }
                 .tag(SettingsTab.general)
 
             MonitoringSettingsView()
-                .tabItem { Label(SettingsTab.monitoring.title, systemImage: SettingsTab.monitoring.iconName) }
+                .tabItem {
+                    Label(SettingsTab.monitoring.title, systemImage: SettingsTab.monitoring.iconName)
+                }
                 .tag(SettingsTab.monitoring)
 
             PowerSettingsView()
-                .tabItem { Label(SettingsTab.power.title, systemImage: SettingsTab.power.iconName) }
+                .tabItem {
+                    Label(SettingsTab.power.title, systemImage: SettingsTab.power.iconName)
+                }
                 .tag(SettingsTab.power)
 
             AboutView()
-                .tabItem { Label(SettingsTab.about.title, systemImage: SettingsTab.about.iconName) }
+                .tabItem {
+                    Label(SettingsTab.about.title, systemImage: SettingsTab.about.iconName)
+                }
                 .tag(SettingsTab.about)
         }
-        .frame(width: 460, height: 440)
+        .frame(width: 480, height: 440)
     }
 }

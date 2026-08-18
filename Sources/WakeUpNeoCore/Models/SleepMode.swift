@@ -15,6 +15,8 @@ public enum SleepMode: Equatable, Sendable {
     case watchingDownloads(directory: URL, activeFilesCount: Int)
     /// Sleep prevention is active while waiting for a specific file to appear and stabilize.
     case waitingForFile(targetURL: URL)
+    /// Sleep prevention is active while monitoring a running application or process.
+    case watchingProcess(pid: Int32, name: String, bundleIdentifier: String? = nil)
 
     // MARK: - State Inspection
 
@@ -45,8 +47,13 @@ public enum SleepMode: Equatable, Sendable {
         return true
     }
 
+    public var isWatchingProcess: Bool {
+        guard case .watchingProcess = self else { return false }
+        return true
+    }
+
     public var isSmartWatching: Bool {
-        isWatchingDownloads || isWaitingForFile
+        isWatchingDownloads || isWaitingForFile || isWatchingProcess
     }
 
     // MARK: - Associated Values
@@ -75,6 +82,24 @@ public enum SleepMode: Equatable, Sendable {
         return url
     }
 
+    /// The watched process PID, if this is a process watching session.
+    public var watchedPID: Int32? {
+        guard case .watchingProcess(let pid, _, _) = self else { return nil }
+        return pid
+    }
+
+    /// The watched process name, if this is a process watching session.
+    public var watchedProcessName: String? {
+        guard case .watchingProcess(_, let name, _) = self else { return nil }
+        return name
+    }
+
+    /// The watched process bundle identifier, if available.
+    public var watchedBundleIdentifier: String? {
+        guard case .watchingProcess(_, _, let bundleId) = self else { return nil }
+        return bundleId
+    }
+
     // MARK: - Formatters & Display Labels
 
     /// Short label describing the current mode (e.g. for status headers or accessibility).
@@ -90,6 +115,8 @@ public enum SleepMode: Equatable, Sendable {
             return count > 0 ? "Downloading (\(count))" : "Watching Downloads"
         case .waitingForFile(let url):
             return "Waiting for \(url.lastPathComponent)"
+        case .watchingProcess(let pid, let name, _):
+            return "Watching \(name) (\(pid))"
         }
     }
 
@@ -110,6 +137,8 @@ public enum SleepMode: Equatable, Sendable {
             }
         case .waitingForFile(let url):
             return "Waiting for \(url.lastPathComponent) to appear and finish writing"
+        case .watchingProcess(let pid, let name, _):
+            return "Watching \(name) (PID \(pid)) — sleep prevented while process is alive"
         }
     }
 }

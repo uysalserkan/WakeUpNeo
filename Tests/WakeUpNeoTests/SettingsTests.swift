@@ -138,6 +138,15 @@ final class SettingsTests: XCTestCase {
         let waiting = SleepMode.waitingForFile(targetURL: file)
         XCTAssertEqual(waiting.statusTitle, "Waiting for report.pdf")
         XCTAssertTrue(waiting.statusDescription.contains("Waiting for report.pdf"))
+
+        let proc = SleepMode.watchingProcess(pid: 1234, name: "Xcode", bundleIdentifier: "com.apple.dt.Xcode")
+        XCTAssertEqual(proc.statusTitle, "Watching Xcode (1234)")
+        XCTAssertTrue(proc.statusDescription.contains("Watching Xcode (PID 1234)"))
+        XCTAssertTrue(proc.isWatchingProcess)
+        XCTAssertTrue(proc.isSmartWatching)
+        XCTAssertEqual(proc.watchedPID, 1234)
+        XCTAssertEqual(proc.watchedProcessName, "Xcode")
+        XCTAssertEqual(proc.watchedBundleIdentifier, "com.apple.dt.Xcode")
     }
 
     // MARK: - AppSettings
@@ -157,6 +166,7 @@ final class SettingsTests: XCTestCase {
         XCTAssertEqual(s.fileStabilizationDuration, 2.0)
         XCTAssertTrue(s.notifyOnDownloadsComplete)
         XCTAssertTrue(s.notifyOnFileDetected)
+        XCTAssertTrue(s.notifyOnProcessTerminated)
     }
 
     func testAppSettingsEquality() {
@@ -174,6 +184,10 @@ final class SettingsTests: XCTestCase {
         var d = AppSettings.default
         d.preventLidSleep = true
         XCTAssertNotEqual(a, d)
+
+        var e = AppSettings.default
+        e.notifyOnProcessTerminated = false
+        XCTAssertNotEqual(a, e)
     }
 
     func testAppSettingsKeysAreNonEmpty() {
@@ -190,6 +204,7 @@ final class SettingsTests: XCTestCase {
         XCTAssertFalse(AppSettingsKeys.fileStabilizationDuration.isEmpty)
         XCTAssertFalse(AppSettingsKeys.notifyOnDownloadsComplete.isEmpty)
         XCTAssertFalse(AppSettingsKeys.notifyOnFileDetected.isEmpty)
+        XCTAssertFalse(AppSettingsKeys.notifyOnProcessTerminated.isEmpty)
     }
 
     func testAppSettingsKeysAreUnique() {
@@ -206,7 +221,8 @@ final class SettingsTests: XCTestCase {
             AppSettingsKeys.customTemporaryExtensions,
             AppSettingsKeys.fileStabilizationDuration,
             AppSettingsKeys.notifyOnDownloadsComplete,
-            AppSettingsKeys.notifyOnFileDetected
+            AppSettingsKeys.notifyOnFileDetected,
+            AppSettingsKeys.notifyOnProcessTerminated
         ]
         let unique = Set(keys)
         XCTAssertEqual(keys.count, unique.count, "All UserDefaults keys must be unique")

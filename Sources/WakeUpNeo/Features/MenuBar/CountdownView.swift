@@ -66,6 +66,16 @@ struct CountdownView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 }
+
+            case .watchingProcess(let pid, let name, _):
+                Label(
+                    "Watching \(name) (\(pid))",
+                    systemImage: "cpu"
+                )
+                .font(.caption)
+                .foregroundStyle(Color.accentColor)
+                .lineLimit(1)
+                .truncationMode(.middle)
             }
         }
         .accessibilityLabel(accessibilityDescription)
@@ -91,21 +101,23 @@ struct CountdownView: View {
 
     private var accessibilityDescription: String {
         switch manager.mode {
-        case .off:                         return ""
-        case .indefinite:                  return "Session is active indefinitely"
-        case .timed:                       return "Session time remaining"
-        case .watchingDownloads:           return "Watching downloads in progress"
-        case .waitingForFile:              return manager.isStabilizingFile ? "Target file is stabilizing" : "Waiting for target file"
+        case .off:                             return ""
+        case .indefinite:                      return "Session is active indefinitely"
+        case .timed:                           return "Session time remaining"
+        case .watchingDownloads:               return "Watching downloads in progress"
+        case .waitingForFile:                  return manager.isStabilizingFile ? "Target file is stabilizing" : "Waiting for target file"
+        case .watchingProcess(_, let name, _): return "Watching process \(name)"
         }
     }
 
     private var accessibilityValue: String {
         switch manager.mode {
-        case .off:                         return ""
-        case .indefinite:                  return "No time limit"
-        case .timed:                       return formattedRemaining
+        case .off:                             return ""
+        case .indefinite:                      return "No time limit"
+        case .timed:                           return formattedRemaining
         case .watchingDownloads(_, let count): return count > 0 ? "\(count) active \(count == 1 ? "download" : "downloads")" : "Watching for downloads"
-        case .waitingForFile(let url):     return manager.isStabilizingFile ? "Stabilizing \(url.lastPathComponent)" : "Waiting for \(url.lastPathComponent)"
+        case .waitingForFile(let url):         return manager.isStabilizingFile ? "Stabilizing \(url.lastPathComponent)" : "Waiting for \(url.lastPathComponent)"
+        case .watchingProcess(let pid, let name, _): return "\(name) (PID \(pid))"
         }
     }
 }

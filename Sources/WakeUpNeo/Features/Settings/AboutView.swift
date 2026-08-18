@@ -1,13 +1,20 @@
 import SwiftUI
+import WakeUpNeoCore
 
 // MARK: - AboutView
 
-/// About screen: app icon, name, version, and Matrix tagline.
+/// About screen: app icon, name, version, Matrix tagline, and update status.
 /// Feels like a built-in macOS utility's About panel.
 struct AboutView: View {
 
+    @Environment(AppEnvironment.self) private var env
+
+    private var updateManager: UpdateManager {
+        env.updateManager
+    }
+
     private var versionString: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.4"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.5"
         let build   = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
         return "Version \(version) (\(build))"
     }
@@ -16,34 +23,21 @@ struct AboutView: View {
         VStack(spacing: 16) {
             Spacer()
 
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(nsColor: .windowBackgroundColor))
-                    .frame(width: 72, height: 72)
-                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 2)
-
-                Image(systemName: "eye.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 44, height: 44)
-                    .foregroundStyle(Color.accentColor)
-            }
-            .accessibilityHidden(true)
+            appIconView
+                .accessibilityHidden(true)
 
             VStack(spacing: 4) {
                 Text("WakeUpNeo")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(.title2.weight(.bold))
 
                 Text(versionString)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Text("Wake up, Neo.")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.primary)
 
                 Text("Stay awake. Stay out of the way.")
@@ -51,11 +45,111 @@ struct AboutView: View {
                     .foregroundStyle(.secondary)
             }
             .multilineTextAlignment(.center)
-            .padding(.horizontal, 40)
+            .padding(.horizontal, 30)
+
+            Divider()
+                .padding(.horizontal, 32)
+
+            // MARK: - Update Status Section
+            updateSection
 
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+    }
+
+    @ViewBuilder
+    private var appIconView: some View {
+        if let icon = NSImage(named: "AppIcon") ?? NSApplication.shared.applicationIconImage {
+            Image(nsImage: icon)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 64, height: 64)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(.quaternary)
+                    .frame(width: 64, height: 64)
+
+                Image(systemName: "eye.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                    .foregroundStyle(.tint)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var updateSection: some View {
+        if updateManager.isChecking {
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Checking for updates…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 4)
+        } else if let release = updateManager.updateAvailable {
+            VStack(spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                        .foregroundStyle(.tint)
+                    Text("Update Available: \(release.displayTitle)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+
+                HStack(spacing: 8) {
+                    Button("Update Now") {
+                        updateManager.openDownloadLink(for: release)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+
+                    Button("Release Notes") {
+                        updateManager.openReleasePage(for: release)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.quaternary)
+            )
+        } else {
+            VStack(spacing: 8) {
+                if updateManager.isUpToDate {
+                    Text("WakeUpNeo is up to date.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if let error = updateManager.lastError {
+                    Text(error)
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                }
+
+                if let lastChecked = updateManager.lastCheckedDate {
+                    Text("Last checked: \(lastChecked.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+
+                Button("Check for Updates") {
+                    Task {
+                        await updateManager.checkForUpdates(manual: true)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .accessibilityLabel("Check for software updates")
+            }
+        }
     }
 }

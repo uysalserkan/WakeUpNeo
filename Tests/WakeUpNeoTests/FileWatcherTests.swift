@@ -137,11 +137,13 @@ final class FileWatcherTests: XCTestCase {
         let createdUpdate = expectation(description: "Target file created and stabilizing")
         let completeExpectation = expectation(description: "Target file stabilized")
         
+        var createdFulfilled = false
         try watcher.waitForFile(
             at: targetURL,
             stabilizationDuration: 0.8,
             onUpdate: { state in
-                if state.exists && state.isStabilizing {
+                if state.exists && state.isStabilizing && !createdFulfilled {
+                    createdFulfilled = true
                     createdUpdate.fulfill()
                 }
             },

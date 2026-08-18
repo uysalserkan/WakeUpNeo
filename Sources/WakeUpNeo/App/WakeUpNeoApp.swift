@@ -22,7 +22,7 @@ struct WakeUpNeoApp: App {
                 .environment(env.sleepManager)
                 .environment(env)
         } label: {
-            MenuBarIcon(isActive: env.sleepManager.isActive)
+            MenuBarIcon(manager: env.sleepManager)
         }
         .menuBarExtraStyle(.window)
 

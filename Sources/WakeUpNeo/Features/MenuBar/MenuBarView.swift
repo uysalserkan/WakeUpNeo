@@ -6,9 +6,10 @@ import WakeUpNeoCore
 /// The main menu bar popover — the central UI surface in WakeUpNeo.
 ///
 /// Design goals:
-/// - The user understands the current state within one second of opening.
-/// - Controls are immediately reachable with a single click.
-/// - No dashboard aesthetic; no unnecessary visual noise.
+/// - Clean macOS material cards with clear visual hierarchy and balanced spacing.
+/// - No harsh 1px dividers: grouping is communicated through soft rounded cards,
+///   background materials, and deliberate typographic rhythm.
+/// - Power button in header, pill buttons for actions and options.
 /// - Fully keyboard-navigable and VoiceOver-accessible.
 struct MenuBarView: View {
 
@@ -18,6 +19,9 @@ struct MenuBarView: View {
 
     @AppStorage(AppSettingsKeys.keepDisplayAwake) private var keepDisplayAwake = false
     @AppStorage(AppSettingsKeys.preventLidSleep)    private var preventLidSleep    = false
+    @AppStorage(AppSettingsKeys.activeIconColor)   private var activeIconColorRaw = "red"
+
+    @State private var isTimeSectionExpanded = false
 
     // Error alert binding
     private var showError: Binding<Bool> {
@@ -27,47 +31,34 @@ struct MenuBarView: View {
         )
     }
 
-    // Prevent Sleep toggle binding
-    private var sleepPreventionOn: Binding<Bool> {
-        Binding(
-            get: { manager.isActive },
-            set: { on in
-                if on { manager.startIndefinitely() } else { manager.stop() }
-            }
-        )
+    private var eyeColor: Color {
+        guard manager.isActive else { return .secondary }
+        return (ActiveIconColor(rawValue: activeIconColorRaw) ?? .red).color
     }
 
-    // Watch Downloads toggle binding
-    private var watchDownloadsBinding: Binding<Bool> {
-        Binding(
-            get: { manager.mode.isWatchingDownloads },
-            set: { on in
-                if on {
-                    let settings = AppSettings.load()
-                    manager.startWatchingDownloads(
-                        directory: settings.watchedDownloadsURL,
-                        customExtensions: settings.parsedCustomExtensions
-                    )
-                } else {
-                    manager.stop()
-                }
-            }
-        )
+    private var shouldShowDurationSection: Bool {
+        isTimeSectionExpanded || manager.isActive
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            headerSection
-            Divider()
-            controlsSection
-            Divider()
-            durationSection
-            Divider()
-            smartWatchersSection
-            Divider()
-            footerSection
+        VStack(spacing: 8) {
+            // 1. Header & Duration Hero Card
+            headerCard
+
+            // 2. Smart Watchers Card
+            smartWatchersCard
+
+            // 3. Update Banner (when available)
+            if env.updateManager.updateAvailable != nil {
+                updateBannerCard
+            }
+
+            // 4. Footer Actions Card
+            footerCard
         }
-        .frame(width: 280)
+        .padding(8)
+        .frame(width: 272)
+        .animation(.easeInOut(duration: 0.22), value: shouldShowDurationSection)
         .alert("Unable to Prevent Sleep", isPresented: showError) {
             Button("Try Again") {
                 manager.clearError()
@@ -83,161 +74,244 @@ struct MenuBarView: View {
         }
     }
 
-    // MARK: - Header
+    // MARK: - 1. Header & Duration Card
 
-    private var headerSection: some View {
-        VStack(spacing: 6) {
-            Image(systemName: manager.isActive ? "eye.fill" : "eye.slash")
-                .font(.system(size: 30, weight: .medium))
-                .foregroundStyle(manager.isActive ? Color.accentColor : Color.secondary)
-                .symbolEffect(.bounce, value: manager.isActive)
-                .padding(.top, 18)
-                .accessibilityHidden(true)
+    private var headerCard: some View {
+        VStack(spacing: 10) {
+            // Top Row: App identity, active status, power toggle
+            HStack(spacing: 10) {
+                Image(systemName: manager.isActive ? "eye.fill" : "eye.slash")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(eyeColor)
+                    .symbolEffect(.bounce, value: manager.isActive)
+                    .accessibilityHidden(true)
 
-            Text("WakeUpNeo")
-                .font(.headline)
-                .accessibilityHeading(.h1)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("WakeUpNeo")
+                        .font(.system(size: 13, weight: .semibold))
+                        .accessibilityHeading(.h1)
 
-            if manager.isActive {
-                CountdownView(manager: manager)
-            } else {
-                Text("Your Mac can sleep normally")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.bottom, 14)
-        .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Main Toggle
-
-    private var controlsSection: some View {
-        Toggle(isOn: sleepPreventionOn) {
-            Label("Prevent Sleep", systemImage: "powersleep")
-        }
-        .toggleStyle(.switch)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .accessibilityLabel("Prevent Sleep")
-        .accessibilityValue(manager.isActive ? "On" : "Off")
-        .accessibilityHint("Toggle to start or stop sleep prevention")
-    }
-
-    // MARK: - Duration Picker
-
-    private var durationSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Duration")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-
-            HStack(spacing: 6) {
-                ForEach(DefaultDuration.allCases) { preset in
-                    durationButton(preset)
+                    if manager.isActive {
+                        CountdownView(manager: manager)
+                    } else {
+                        Text("Mac can sleep normally")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                indefiniteButton
-            }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 8)
 
-            Divider()
-                .padding(.horizontal, 12)
+                Spacer(minLength: 4)
 
-            Toggle(isOn: $keepDisplayAwake) {
-                Label("Keep Display Awake", systemImage: "sun.max")
+                // Power Icon Button
+                Button {
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        if manager.isActive {
+                            manager.stop()
+                            isTimeSectionExpanded = false
+                        } else {
+                            let settings = AppSettings.load()
+                            manager.start(for: settings.defaultDuration.rawValue)
+                            isTimeSectionExpanded = true
+                        }
+                    }
+                } label: {
+                    Image(systemName: manager.isActive ? "power.circle.fill" : "power.circle")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundStyle(eyeColor)
+                        .symbolEffect(.bounce, value: manager.isActive)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(manager.isActive ? "Stop sleep prevention" : "Start sleep prevention")
+                .accessibilityValue(manager.isActive ? "On" : "Off")
+                .accessibilityHint("Click to toggle sleep prevention")
             }
-            .toggleStyle(.switch)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 4)
-            .onChange(of: keepDisplayAwake) { _, newValue in
-                manager.keepDisplayAwake = newValue
-            }
-            .accessibilityLabel("Keep Display Awake")
-            .accessibilityHint("Also prevent the display from sleeping")
 
-            Toggle(isOn: $preventLidSleep) {
-                Label("Prevent Lid Sleep", systemImage: "laptopcomputer")
+            // Expandable Duration & Power Options
+            if shouldShowDurationSection {
+                VStack(alignment: .leading, spacing: 8) {
+                    // Duration Preset Pills Row
+                    HStack(spacing: 5) {
+                        ForEach(DefaultDuration.allCases) { preset in
+                            Button {
+                                manager.start(for: preset.rawValue)
+                            } label: {
+                                Text(preset.shortLabel)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 4)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .clipShape(Capsule())
+                            .accessibilityLabel(preset.accessibilityLabel)
+                        }
+
+                        Button {
+                            manager.startIndefinitely()
+                        } label: {
+                            Image(systemName: "infinity")
+                                .font(.system(size: 11, weight: .medium))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .clipShape(Capsule())
+                        .accessibilityLabel("Start indefinitely — no time limit")
+                    }
+                    .padding(.top, 2)
+
+                    // Power Option Pills
+                    VStack(spacing: 5) {
+                        // Keep Display Awake Pill
+                        Button {
+                            keepDisplayAwake.toggle()
+                            manager.keepDisplayAwake = keepDisplayAwake
+                        } label: {
+                            HStack {
+                                Label("Keep Display Awake", systemImage: "sun.max")
+                                    .font(.caption)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Text(keepDisplayAwake ? "On" : "Off")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(keepDisplayAwake ? Color.accentColor : Color.primary.opacity(0.08))
+                                    .foregroundStyle(keepDisplayAwake ? Color.white : Color.secondary)
+                                    .clipShape(Capsule())
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Keep Display Awake")
+                        .accessibilityValue(keepDisplayAwake ? "On" : "Off")
+
+                        // Prevent Lid Sleep Pill
+                        Button {
+                            preventLidSleep.toggle()
+                            manager.preventLidSleep = preventLidSleep
+                        } label: {
+                            HStack {
+                                Label("Prevent Lid Sleep", systemImage: "laptopcomputer")
+                                    .font(.caption)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Text(preventLidSleep ? "On" : "Off")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(preventLidSleep ? Color.accentColor : Color.primary.opacity(0.08))
+                                    .foregroundStyle(preventLidSleep ? Color.white : Color.secondary)
+                                    .clipShape(Capsule())
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Prevent Lid Sleep")
+                        .accessibilityValue(preventLidSleep ? "On" : "Off")
+                    }
+                    .padding(.top, 2)
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
-            .toggleStyle(.switch)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 10)
-            .onChange(of: preventLidSleep) { _, newValue in
-                manager.preventLidSleep = newValue
-            }
-            .accessibilityLabel("Prevent Lid Sleep")
-            .accessibilityHint("Prevent the Mac from sleeping when the lid is closed")
         }
+        .padding(11)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.55))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.05), lineWidth: 0.5)
+        )
     }
 
-    private func durationButton(_ preset: DefaultDuration) -> some View {
-        Button {
-            manager.start(for: preset.rawValue)
-        } label: {
-            Text(preset.shortLabel)
-                .font(.caption.weight(.medium))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 5)
+    // MARK: - 2. Smart Watchers Card
+
+    private var smartWatchersCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("SMART WATCHERS")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.tertiary)
+                .padding(.horizontal, 2)
+
+            VStack(spacing: 8) {
+                watchDownloadsRow
+                waitForFileRow
+                watchProcessRow
+            }
         }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-        .accessibilityLabel(preset.accessibilityLabel)
-    }
-
-    private var indefiniteButton: some View {
-        Button {
-            manager.startIndefinitely()
-        } label: {
-            Image(systemName: "infinity")
-                .font(.caption.weight(.medium))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 5)
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-        .accessibilityLabel("Start indefinitely — no time limit")
-    }
-
-    // MARK: - Smart Watchers
-
-    private var smartWatchersSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Smart Watchers")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-
-            watchDownloadsRow
-
-            Divider()
-                .padding(.horizontal, 12)
-
-            waitForFileRow
-        }
-        .padding(.bottom, 10)
+        .padding(11)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.55))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.05), lineWidth: 0.5)
+        )
     }
 
     private var watchDownloadsRow: some View {
-        Toggle(isOn: watchDownloadsBinding) {
-            VStack(alignment: .leading, spacing: 2) {
-                Label("Watch Downloads", systemImage: manager.mode.isWatchingDownloads ? "arrow.down.circle.fill" : "arrow.down.circle")
-                if case .watchingDownloads(let dir, let count) = manager.mode {
-                    Text(count > 0 ? "\(count) active (\(dir.lastPathComponent))" : "Watching \(dir.lastPathComponent)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+        HStack {
+            Label {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Watch Downloads")
+                        .font(.system(size: 12, weight: .medium))
+                    if case .watchingDownloads(let dir, let count) = manager.mode {
+                        Text(count > 0 ? "\(count) active (\(dir.lastPathComponent))" : "Watching \(dir.lastPathComponent)")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                 }
+            } icon: {
+                Image(systemName: manager.mode.isWatchingDownloads ? "arrow.down.circle.fill" : "arrow.down.circle")
+                    .foregroundStyle(manager.mode.isWatchingDownloads ? Color.accentColor : Color.secondary)
+            }
+
+            Spacer(minLength: 4)
+
+            if manager.mode.isWatchingDownloads {
+                Button {
+                    UserDefaults.standard.set(DefaultDuration.fifteenMinutes.rawValue, forKey: AppSettingsKeys.defaultDuration)
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
+                        isTimeSectionExpanded = true
+                    }
+                } label: {
+                    Text("Stop")
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 3)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .clipShape(Capsule())
+                .accessibilityLabel("Stop watching downloads and sleep after 15 minutes")
+                .accessibilityValue("Active")
+            } else {
+                Button {
+                    let settings = AppSettings.load()
+                    manager.startWatchingDownloads(
+                        directory: settings.watchedDownloadsURL,
+                        customExtensions: settings.parsedCustomExtensions
+                    )
+                } label: {
+                    Text("Start")
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 3)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .clipShape(Capsule())
+                .accessibilityLabel("Start watching downloads")
+                .accessibilityValue("Inactive")
             }
         }
-        .toggleStyle(.switch)
-        .padding(.horizontal, 16)
-        .accessibilityLabel("Watch Downloads")
-        .accessibilityValue(manager.mode.isWatchingDownloads ? "On" : "Off")
-        .accessibilityHint("Keep Mac awake while files are downloading in the watched directory")
     }
 
     @ViewBuilder
@@ -245,11 +319,11 @@ struct MenuBarView: View {
         if case .waitingForFile(let url) = manager.mode {
             HStack {
                 Label {
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 1) {
                         Text(manager.isStabilizingFile ? "Stabilizing File" : "Waiting for File")
-                            .font(.body)
+                            .font(.system(size: 12, weight: .medium))
                         Text(url.lastPathComponent)
-                            .font(.caption2)
+                            .font(.system(size: 10))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -259,20 +333,22 @@ struct MenuBarView: View {
                         .foregroundStyle(Color.accentColor)
                 }
 
-                Spacer()
+                Spacer(minLength: 4)
 
                 Button {
-                    manager.stop()
+                    UserDefaults.standard.set(DefaultDuration.fifteenMinutes.rawValue, forKey: AppSettingsKeys.defaultDuration)
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
+                        isTimeSectionExpanded = true
+                    }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
-                        .font(.body)
+                        .font(.system(size: 14))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Stop waiting for file")
+                .accessibilityLabel("Stop waiting for file and sleep after 15 minutes")
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 2)
         } else {
             Button {
                 FilePickerHelper.selectTargetFile { selectedURL in
@@ -286,71 +362,193 @@ struct MenuBarView: View {
             } label: {
                 HStack {
                     Label("Wait for File…", systemImage: "doc.badge.clock")
-                        .font(.body)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.primary)
                     Spacer()
-                    Image(systemName: "ellipsis")
-                        .font(.caption)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(.tertiary)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 2)
             .accessibilityLabel("Wait for File")
             .accessibilityHint("Select a file to wait for completion before allowing sleep")
         }
     }
 
-    // MARK: - Footer
+    @ViewBuilder
+    private var watchProcessRow: some View {
+        if case .watchingProcess(let pid, let name, _) = manager.mode {
+            HStack {
+                Label {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Watching App")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("\(name) (PID \(pid))")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                } icon: {
+                    Image(systemName: "app.badge.checkmark.fill")
+                        .foregroundStyle(Color.accentColor)
+                }
 
-    private var footerSection: some View {
-        VStack(spacing: 0) {
+                Spacer(minLength: 4)
+
+                Button {
+                    UserDefaults.standard.set(DefaultDuration.fifteenMinutes.rawValue, forKey: AppSettingsKeys.defaultDuration)
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
+                        isTimeSectionExpanded = true
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.system(size: 14))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Stop watching app and sleep after 15 minutes")
+            }
+        } else {
             Button {
-                // Opens the Settings window (works with the Settings scene)
-                openSettings()
-                // Dismiss the popover
-                NSApp.activate(ignoringOtherApps: true)
+                ProcessPickerWindowController.shared.present { target in
+                    manager.startWatchingProcess(
+                        pid: target.pid,
+                        name: target.name,
+                        bundleIdentifier: target.bundleIdentifier
+                    )
+                }
             } label: {
-                footerRow(title: "Settings", trailing: {
+                HStack {
+                    Label("Watch App…", systemImage: "macwindow.badge.plus")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.primary)
+                    Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.caption)
+                        .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(.tertiary)
-                })
+                }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Open Settings")
+            .accessibilityLabel("Watch Application")
+            .accessibilityHint("Select an application or process to keep Mac awake until it terminates")
+        }
+    }
 
-            Divider()
+    // MARK: - 3. Update Banner Card
+
+    @ViewBuilder
+    private var updateBannerCard: some View {
+        if let release = env.updateManager.updateAvailable {
+            Button {
+                env.updateManager.openDownloadLink(for: release)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                        .foregroundStyle(Color.accentColor)
+                        .font(.system(size: 16))
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Update Available")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        Text(release.displayTitle)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 4)
+
+                    Text("Update")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
+                        .background(Color.accentColor.opacity(0.16))
+                        .clipShape(Capsule())
+                }
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.accentColor.opacity(0.2), lineWidth: 0.5)
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Update Available: \(release.displayTitle). Click to update.")
+        }
+    }
+
+    // MARK: - 4. Footer Actions Card
+
+    private var footerCard: some View {
+        VStack(spacing: 2) {
+            Button {
+                openSettingsWindow()
+            } label: {
+                HStack {
+                    Label("Settings…", systemImage: "gearshape")
+                        .font(.system(size: 12))
+                    Spacer()
+                    Text("⌘,")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut(",", modifiers: .command)
+            .accessibilityLabel("Open Settings")
 
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                footerRow(title: "Quit WakeUpNeo", trailing: {
+                HStack {
+                    Label("Quit WakeUpNeo", systemImage: "power")
+                        .font(.system(size: 12))
+                    Spacer()
                     Text("⌘Q")
-                        .font(.caption)
+                        .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
-                })
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .keyboardShortcut("q", modifiers: .command)
             .accessibilityLabel("Quit WakeUpNeo")
         }
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.35))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.04), lineWidth: 0.5)
+        )
     }
 
-    @ViewBuilder
-    private func footerRow<Trailing: View>(
-        title: String,
-        @ViewBuilder trailing: () -> Trailing
-    ) -> some View {
-        HStack {
-            Text(title)
-                .font(.body)
-            Spacer()
-            trailing()
+    private func openSettingsWindow() {
+        openSettings()
+        NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            NSApp.activate(ignoringOtherApps: true)
+            for window in NSApp.windows where window.canBecomeKey && window.isVisible {
+                window.makeKeyAndOrderFront(nil)
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
     }
 }

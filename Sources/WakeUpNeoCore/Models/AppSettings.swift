@@ -58,6 +58,12 @@ public enum AppSettingsKeys {
     public static let fileStabilizationDuration  = "fileStabilizationDuration"
     public static let notifyOnDownloadsComplete  = "notifyOnDownloadsComplete"
     public static let notifyOnFileDetected       = "notifyOnFileDetected"
+    public static let notifyOnProcessTerminated  = "notifyOnProcessTerminated"
+    // Update Preferences
+    public static let checkForUpdatesAutomatically = "checkForUpdatesAutomatically"
+    public static let lastUpdateCheckTimestamp     = "lastUpdateCheckTimestamp"
+    // Appearance Preferences
+    public static let activeIconColor              = "activeIconColor"
 }
 
 // MARK: - AppSettings (testable snapshot)
@@ -78,6 +84,10 @@ public struct AppSettings: Equatable, Sendable {
     public var fileStabilizationDuration:  Double
     public var notifyOnDownloadsComplete:  Bool
     public var notifyOnFileDetected:       Bool
+    public var notifyOnProcessTerminated:  Bool
+    public var checkForUpdatesAutomatically: Bool
+    public var lastUpdateCheckTimestamp:   Double
+    public var activeIconColor:            ActiveIconColor
 
     /// The standard user Downloads directory URL.
     public static var defaultDownloadsURL: URL {
@@ -98,7 +108,11 @@ public struct AppSettings: Equatable, Sendable {
         customTemporaryExtensions:  "",
         fileStabilizationDuration:  2.0,
         notifyOnDownloadsComplete:  true,
-        notifyOnFileDetected:       true
+        notifyOnFileDetected:       true,
+        notifyOnProcessTerminated:  true,
+        checkForUpdatesAutomatically: true,
+        lastUpdateCheckTimestamp:   0.0,
+        activeIconColor:            .red
     )
 
     public init(
@@ -114,7 +128,11 @@ public struct AppSettings: Equatable, Sendable {
         customTemporaryExtensions:  String          = "",
         fileStabilizationDuration:  Double          = 2.0,
         notifyOnDownloadsComplete:  Bool            = true,
-        notifyOnFileDetected:       Bool            = true
+        notifyOnFileDetected:       Bool            = true,
+        notifyOnProcessTerminated:  Bool            = true,
+        checkForUpdatesAutomatically: Bool          = true,
+        lastUpdateCheckTimestamp:   Double          = 0.0,
+        activeIconColor:            ActiveIconColor = .red
     ) {
         self.launchAtLogin              = launchAtLogin
         self.showCountdownInMenuBar     = showCountdownInMenuBar
@@ -129,6 +147,10 @@ public struct AppSettings: Equatable, Sendable {
         self.fileStabilizationDuration  = fileStabilizationDuration
         self.notifyOnDownloadsComplete  = notifyOnDownloadsComplete
         self.notifyOnFileDetected       = notifyOnFileDetected
+        self.notifyOnProcessTerminated  = notifyOnProcessTerminated
+        self.checkForUpdatesAutomatically = checkForUpdatesAutomatically
+        self.lastUpdateCheckTimestamp   = lastUpdateCheckTimestamp
+        self.activeIconColor            = activeIconColor
     }
 
     /// Convenience URL representation of `watchedDownloadsPath`.
@@ -152,6 +174,7 @@ public struct AppSettings: Equatable, Sendable {
         let watchedPath = d.string(forKey: AppSettingsKeys.watchedDownloadsPath) ?? defaultDownloadsURL.path(percentEncoded: false)
         let customExt = d.string(forKey: AppSettingsKeys.customTemporaryExtensions) ?? ""
         let settleDuration = d.object(forKey: AppSettingsKeys.fileStabilizationDuration) == nil ? 2.0 : d.double(forKey: AppSettingsKeys.fileStabilizationDuration)
+        let colorRaw = d.string(forKey: AppSettingsKeys.activeIconColor) ?? "red"
 
         return AppSettings(
             launchAtLogin:              d.object(forKey: AppSettingsKeys.launchAtLogin)              == nil ? true  : d.bool(forKey: AppSettingsKeys.launchAtLogin),
@@ -166,7 +189,11 @@ public struct AppSettings: Equatable, Sendable {
             customTemporaryExtensions:  customExt,
             fileStabilizationDuration:  settleDuration,
             notifyOnDownloadsComplete:  d.object(forKey: AppSettingsKeys.notifyOnDownloadsComplete)  == nil ? true  : d.bool(forKey: AppSettingsKeys.notifyOnDownloadsComplete),
-            notifyOnFileDetected:       d.object(forKey: AppSettingsKeys.notifyOnFileDetected)       == nil ? true  : d.bool(forKey: AppSettingsKeys.notifyOnFileDetected)
+            notifyOnFileDetected:       d.object(forKey: AppSettingsKeys.notifyOnFileDetected)       == nil ? true  : d.bool(forKey: AppSettingsKeys.notifyOnFileDetected),
+            notifyOnProcessTerminated:  d.object(forKey: AppSettingsKeys.notifyOnProcessTerminated)  == nil ? true  : d.bool(forKey: AppSettingsKeys.notifyOnProcessTerminated),
+            checkForUpdatesAutomatically: d.object(forKey: AppSettingsKeys.checkForUpdatesAutomatically) == nil ? true : d.bool(forKey: AppSettingsKeys.checkForUpdatesAutomatically),
+            lastUpdateCheckTimestamp:   d.double(forKey: AppSettingsKeys.lastUpdateCheckTimestamp),
+            activeIconColor:            ActiveIconColor(rawValue: colorRaw) ?? .red
         )
     }
 }

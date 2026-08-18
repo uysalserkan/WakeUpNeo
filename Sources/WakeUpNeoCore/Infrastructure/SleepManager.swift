@@ -57,18 +57,21 @@ public final class SleepManager {
 
     // MARK: - Dependencies & Private State
 
-    private let compositeService:   CompositeSleepService
-    private let fileWatcherService: FileWatchingService
-    private var countdownTask:      Task<Void, Never>?
+    private let compositeService:      CompositeSleepService
+    private let fileWatcherService:    FileWatchingService
+    private let processWatcherService: ProcessWatchingService
+    private var countdownTask:         Task<Void, Never>?
 
     // MARK: - Init
 
     public init(
         compositeService: CompositeSleepService,
-        fileWatcherService: FileWatchingService = DefaultFileWatcherService()
+        fileWatcherService: FileWatchingService = DefaultFileWatcherService(),
+        processWatcherService: ProcessWatchingService = DefaultProcessWatchingService()
     ) {
-        self.compositeService   = compositeService
-        self.fileWatcherService = fileWatcherService
+        self.compositeService      = compositeService
+        self.fileWatcherService    = fileWatcherService
+        self.processWatcherService = processWatcherService
     }
 
     // MARK: - Public Interface: Timed & Indefinite
@@ -235,6 +238,55 @@ public final class SleepManager {
         }
     }
 
+    /// Start watching a specific application or process by PID.
+    /// Sleep prevention will be held until the process terminates.
+    public func startWatchingProcess(
+        pid: Int32,
+        name: String,
+        bundleIdentifier: String? = nil
+    ) {
+        stop()
+        do {
+            try activateServices()
+            mode              = .watchingProcess(pid: pid, name: name, bundleIdentifier: bundleIdentifier)
+            activeDownloads   = []
+            isStabilizingFile = false
+            remainingTime     = 0
+            lastError         = nil
+
+            try processWatcherService.watchProcess(
+                pid: pid,
+                name: name,
+                onTerminate: { [weak self] in
+                    if Thread.isMainThread {
+                        MainActor.assumeIsolated { self?.handleProcessTerminated(pid: pid, name: name) }
+                    } else {
+                        Task { @MainActor [weak self] in
+                            self?.handleProcessTerminated(pid: pid, name: name)
+                        }
+                    }
+                },
+                onError: { [weak self] error in
+                    if Thread.isMainThread {
+                        MainActor.assumeIsolated { self?.handleWatcherError(error) }
+                    } else {
+                        Task { @MainActor [weak self] in
+                            self?.handleWatcherError(error)
+                        }
+                    }
+                }
+            )
+            logger.info("[Power] Process watching session started for '\(name)' (PID \(pid))")
+        } catch {
+            compositeService.stopAll()
+            mode              = .off
+            activeDownloads   = []
+            isStabilizingFile = false
+            lastError         = error
+            logger.error("[Power] Failed to start watching process: \(error)")
+        }
+    }
+
     // MARK: - Public Interface: Stop & Error Handling
 
     /// Stop any active session, stop watchers, and release all power assertions.
@@ -243,6 +295,7 @@ public final class SleepManager {
         guard !mode.isOff else { return }
         cancelCountdown()
         fileWatcherService.stop()
+        processWatcherService.stop()
         compositeService.stopAll()
         mode              = .off
         remainingTime     = 0
@@ -278,6 +331,7 @@ public final class SleepManager {
         // Tear down fully first
         cancelCountdown()
         fileWatcherService.stop()
+        processWatcherService.stop()
         compositeService.stopAll()
         mode = .off
 
@@ -295,6 +349,8 @@ public final class SleepManager {
             startWatchingDownloads(directory: directory)
         case .waitingForFile(let targetURL):
             startWaitingForFile(at: targetURL)
+        case .watchingProcess(let pid, let name, let bundleId):
+            startWatchingProcess(pid: pid, name: name, bundleIdentifier: bundleId)
         }
     }
 
@@ -378,8 +434,24 @@ public final class SleepManager {
     }
 
     @MainActor
+    private func handleProcessTerminated(pid: Int32, name: String) {
+        guard case .watchingProcess(let watchedPID, _, _) = mode, watchedPID == pid else { return }
+        logger.info("[Power] Process '\(name)' (PID \(pid)) terminated, auto-stopping")
+        processWatcherService.stop()
+        compositeService.stopAll()
+        mode              = .off
+        remainingTime     = 0
+        activeDownloads   = []
+        isStabilizingFile = false
+        NotificationCenter.default.post(
+            name: .wakeUpNeoProcessTerminated,
+            object: MonitoredProcessInfo(pid: pid, name: name)
+        )
+    }
+
+    @MainActor
     private func handleWatcherError(_ error: Error) {
-        logger.error("[Power] File watcher error: \(error)")
+        logger.error("[Power] File/Process watcher error: \(error)")
         lastError = error
         stop()
     }

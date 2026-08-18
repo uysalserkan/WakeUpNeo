@@ -3,14 +3,16 @@ import WakeUpNeoCore
 
 // MARK: - GeneralSettingsView
 
-/// The General tab in Settings: startup, countdown, notifications,
-/// and default duration.
+/// The General tab in Settings: startup, countdown, appearance & color,
+/// notifications, default duration, and updates.
 struct GeneralSettingsView: View {
 
     @AppStorage(AppSettingsKeys.launchAtLogin)          private var launchAtLogin          = true
     @AppStorage(AppSettingsKeys.showCountdownInMenuBar) private var showCountdownInMenuBar = true
+    @AppStorage(AppSettingsKeys.activeIconColor)        private var activeIconColorRaw     = "red"
     @AppStorage(AppSettingsKeys.notifyOnSessionEnd)     private var notifyOnSessionEnd      = true
     @AppStorage(AppSettingsKeys.notifyOnSessionExpiring) private var notifyOnSessionExpiring = false
+    @AppStorage(AppSettingsKeys.checkForUpdatesAutomatically) private var checkForUpdatesAutomatically = true
     @AppStorage(AppSettingsKeys.defaultDuration)        private var defaultDurationRaw: Double = DefaultDuration.oneHour.rawValue
 
     @State private var launchLoginError: Error?
@@ -25,6 +27,10 @@ struct GeneralSettingsView: View {
         )
     }
 
+    private var activeIconColor: ActiveIconColor {
+        ActiveIconColor(rawValue: activeIconColorRaw) ?? .red
+    }
+
     var body: some View {
         Form {
             Section("Startup") {
@@ -34,6 +40,41 @@ struct GeneralSettingsView: View {
                     Text(error.localizedDescription)
                         .font(.caption)
                         .foregroundStyle(.red)
+                }
+            }
+
+            Section("Appearance") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Active Eye Color")
+                        .font(.body)
+
+                    HStack(spacing: 10) {
+                        ForEach(ActiveIconColor.allCases) { option in
+                            Button {
+                                activeIconColorRaw = option.rawValue
+                            } label: {
+                                ZStack {
+                                    Circle()
+                                        .fill(option.color)
+                                        .frame(width: 22, height: 22)
+
+                                    if activeIconColor == option {
+                                        Circle()
+                                            .strokeBorder(Color.white, lineWidth: 2)
+                                            .frame(width: 18, height: 18)
+                                        Circle()
+                                            .strokeBorder(option.color, lineWidth: 2)
+                                            .frame(width: 26, height: 26)
+                                    }
+                                }
+                                .frame(width: 28, height: 28)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(option.label) color")
+                            .accessibilityValue(activeIconColor == option ? "Selected" : "Not selected")
+                        }
+                    }
+                    .padding(.vertical, 2)
                 }
             }
 
@@ -58,6 +99,11 @@ struct GeneralSettingsView: View {
                 }
                 .pickerStyle(.menu)
                 .accessibilityLabel("Default session duration when starting without specifying a time")
+            }
+
+            Section("Updates") {
+                Toggle("Automatically Check for Updates", isOn: $checkForUpdatesAutomatically)
+                    .accessibilityLabel("Automatically check GitHub for new releases")
             }
         }
         .formStyle(.grouped)

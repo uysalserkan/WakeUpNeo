@@ -19,6 +19,7 @@ final class AppEnvironment {
     let sleepManager:         SleepManager
     let notificationService:  NotificationService
     let launchAtLoginService: LaunchAtLoginService
+    let updateManager:        UpdateManager
 
     // MARK: - Private State
 
@@ -30,8 +31,10 @@ final class AppEnvironment {
     init(
         sleepManager: SleepManager? = nil,
         notificationService: NotificationService = NotificationService(),
-        launchAtLoginService: LaunchAtLoginService = LaunchAtLoginService()
+        launchAtLoginService: LaunchAtLoginService = LaunchAtLoginService(),
+        updateManager: UpdateManager? = nil
     ) {
+        self.updateManager = updateManager ?? UpdateManager()
         if let customManager = sleepManager {
             self.sleepManager = customManager
         } else {
@@ -69,6 +72,13 @@ final class AppEnvironment {
         // Request notification permission (no-op if already decided)
         Task {
             await self.notificationService.requestAuthorization()
+        }
+
+        // Check for updates in the background if automatic checking is enabled
+        if settings.checkForUpdatesAutomatically {
+            Task {
+                await self.updateManager.checkForUpdates(manual: false, notificationService: self.notificationService)
+            }
         }
 
         setupObservers()
@@ -120,6 +130,19 @@ final class AppEnvironment {
             }
         }
         observerTokens.append(fileToken)
+
+        // 4. Monitored application/process terminated
+        let processToken = NotificationCenter.default.addObserver(
+            forName: .wakeUpNeoProcessTerminated,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let info = notification.object as? MonitoredProcessInfo else { return }
+            Task { @MainActor [weak self] in
+                self?.handleProcessTerminated(info: info)
+            }
+        }
+        observerTokens.append(processToken)
     }
 
     // MARK: - Notification Handlers
@@ -143,5 +166,12 @@ final class AppEnvironment {
         let settings = AppSettings.load()
         guard settings.notifyOnFileDetected else { return }
         notificationService.sendFileDetectedNotification(targetURL: targetURL)
+    }
+
+    @MainActor
+    private func handleProcessTerminated(info: MonitoredProcessInfo) {
+        let settings = AppSettings.load()
+        guard settings.notifyOnProcessTerminated else { return }
+        notificationService.sendProcessTerminatedNotification(processName: info.name, pid: info.pid)
     }
 }

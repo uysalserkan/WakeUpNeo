@@ -471,7 +471,8 @@ final class AdversarialM3SettingsChallengeTests: XCTestCase {
                             customTemporaryExtensions: customExt,
                             fileStabilizationDuration: settle,
                             notifyOnDownloadsComplete: suite.bool(forKey: AppSettingsKeys.notifyOnDownloadsComplete),
-                            notifyOnFileDetected: suite.bool(forKey: AppSettingsKeys.notifyOnFileDetected)
+                            notifyOnFileDetected: suite.bool(forKey: AppSettingsKeys.notifyOnFileDetected),
+                            notifyOnProcessTerminated: suite.bool(forKey: AppSettingsKeys.notifyOnProcessTerminated)
                         )
 
                         _ = snapshot.watchedDownloadsURL

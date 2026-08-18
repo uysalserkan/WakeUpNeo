@@ -535,7 +535,8 @@ final class AdversarialM3ChallengeTests: XCTestCase {
             .timed(until: futureDate),
             .watchingDownloads(directory: testDir, activeFilesCount: 0),
             .watchingDownloads(directory: testDir, activeFilesCount: 7),
-            .waitingForFile(targetURL: targetFile)
+            .waitingForFile(targetURL: targetFile),
+            .watchingProcess(pid: 1234, name: "Xcode", bundleIdentifier: "com.apple.dt.Xcode")
         ]
 
         for mode in allModes {
@@ -547,11 +548,15 @@ final class AdversarialM3ChallengeTests: XCTestCase {
                 XCTAssertFalse(mode.isTimed)
                 XCTAssertFalse(mode.isWatchingDownloads)
                 XCTAssertFalse(mode.isWaitingForFile)
+                XCTAssertFalse(mode.isWatchingProcess)
                 XCTAssertFalse(mode.isSmartWatching)
                 XCTAssertNil(mode.endDate)
                 XCTAssertNil(mode.watchedDirectory)
                 XCTAssertNil(mode.activeFilesCount)
                 XCTAssertNil(mode.targetFileURL)
+                XCTAssertNil(mode.watchedPID)
+                XCTAssertNil(mode.watchedProcessName)
+                XCTAssertNil(mode.watchedBundleIdentifier)
                 XCTAssertEqual(mode.statusTitle, "Off")
                 XCTAssertEqual(mode.statusDescription, "Your Mac can sleep normally")
 
@@ -562,11 +567,15 @@ final class AdversarialM3ChallengeTests: XCTestCase {
                 XCTAssertFalse(mode.isTimed)
                 XCTAssertFalse(mode.isWatchingDownloads)
                 XCTAssertFalse(mode.isWaitingForFile)
+                XCTAssertFalse(mode.isWatchingProcess)
                 XCTAssertFalse(mode.isSmartWatching)
                 XCTAssertNil(mode.endDate)
                 XCTAssertNil(mode.watchedDirectory)
                 XCTAssertNil(mode.activeFilesCount)
                 XCTAssertNil(mode.targetFileURL)
+                XCTAssertNil(mode.watchedPID)
+                XCTAssertNil(mode.watchedProcessName)
+                XCTAssertNil(mode.watchedBundleIdentifier)
                 XCTAssertEqual(mode.statusTitle, "Indefinite")
                 XCTAssertEqual(mode.statusDescription, "Sleep prevention is active indefinitely")
 
@@ -577,11 +586,15 @@ final class AdversarialM3ChallengeTests: XCTestCase {
                 XCTAssertTrue(mode.isTimed)
                 XCTAssertFalse(mode.isWatchingDownloads)
                 XCTAssertFalse(mode.isWaitingForFile)
+                XCTAssertFalse(mode.isWatchingProcess)
                 XCTAssertFalse(mode.isSmartWatching)
                 XCTAssertEqual(mode.endDate, until)
                 XCTAssertNil(mode.watchedDirectory)
                 XCTAssertNil(mode.activeFilesCount)
                 XCTAssertNil(mode.targetFileURL)
+                XCTAssertNil(mode.watchedPID)
+                XCTAssertNil(mode.watchedProcessName)
+                XCTAssertNil(mode.watchedBundleIdentifier)
                 XCTAssertEqual(mode.statusTitle, "Timed")
                 XCTAssertTrue(mode.statusDescription.contains("Sleep prevention active until"))
 
@@ -592,11 +605,15 @@ final class AdversarialM3ChallengeTests: XCTestCase {
                 XCTAssertFalse(mode.isTimed)
                 XCTAssertTrue(mode.isWatchingDownloads)
                 XCTAssertFalse(mode.isWaitingForFile)
+                XCTAssertFalse(mode.isWatchingProcess)
                 XCTAssertTrue(mode.isSmartWatching)
                 XCTAssertNil(mode.endDate)
                 XCTAssertEqual(mode.watchedDirectory, dir)
                 XCTAssertEqual(mode.activeFilesCount, count)
                 XCTAssertNil(mode.targetFileURL)
+                XCTAssertNil(mode.watchedPID)
+                XCTAssertNil(mode.watchedProcessName)
+                XCTAssertNil(mode.watchedBundleIdentifier)
                 if count > 0 {
                     XCTAssertEqual(mode.statusTitle, "Downloading (\(count))")
                     XCTAssertEqual(mode.statusDescription, "\(count) active \(count == 1 ? "download" : "downloads") in \(dir.lastPathComponent)")
@@ -612,13 +629,36 @@ final class AdversarialM3ChallengeTests: XCTestCase {
                 XCTAssertFalse(mode.isTimed)
                 XCTAssertFalse(mode.isWatchingDownloads)
                 XCTAssertTrue(mode.isWaitingForFile)
+                XCTAssertFalse(mode.isWatchingProcess)
                 XCTAssertTrue(mode.isSmartWatching)
                 XCTAssertNil(mode.endDate)
                 XCTAssertNil(mode.watchedDirectory)
                 XCTAssertNil(mode.activeFilesCount)
                 XCTAssertEqual(mode.targetFileURL, url)
+                XCTAssertNil(mode.watchedPID)
+                XCTAssertNil(mode.watchedProcessName)
+                XCTAssertNil(mode.watchedBundleIdentifier)
                 XCTAssertEqual(mode.statusTitle, "Waiting for \(url.lastPathComponent)")
                 XCTAssertEqual(mode.statusDescription, "Waiting for \(url.lastPathComponent) to appear and finish writing")
+
+            case .watchingProcess(let pid, let name, let bundleId):
+                XCTAssertFalse(mode.isOff)
+                XCTAssertTrue(mode.isActive)
+                XCTAssertFalse(mode.isIndefinite)
+                XCTAssertFalse(mode.isTimed)
+                XCTAssertFalse(mode.isWatchingDownloads)
+                XCTAssertFalse(mode.isWaitingForFile)
+                XCTAssertTrue(mode.isWatchingProcess)
+                XCTAssertTrue(mode.isSmartWatching)
+                XCTAssertNil(mode.endDate)
+                XCTAssertNil(mode.watchedDirectory)
+                XCTAssertNil(mode.activeFilesCount)
+                XCTAssertNil(mode.targetFileURL)
+                XCTAssertEqual(mode.watchedPID, pid)
+                XCTAssertEqual(mode.watchedProcessName, name)
+                XCTAssertEqual(mode.watchedBundleIdentifier, bundleId)
+                XCTAssertEqual(mode.statusTitle, "Watching \(name) (\(pid))")
+                XCTAssertTrue(mode.statusDescription.contains("PID \(pid)"))
             }
         }
     }
