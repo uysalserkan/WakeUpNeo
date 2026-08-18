@@ -17,12 +17,26 @@ A sleek, lightweight, native macOS menu bar utility that prevents your Mac from 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
 [**Quick Start**](#-quick-start) •
+[**Interface Preview**](#-interface-preview) •
 [**Features**](#-features) •
 [**User Guide**](#-user-guide) •
 [**Smart Watchers**](#-smart-watchers) •
 [**Settings**](#-settings--customization) •
 [**Architecture**](#-architecture) •
 [**FAQ**](#-faq--troubleshooting)
+
+</div>
+
+---
+
+## 🖥️ Interface Preview
+
+<div align="center">
+
+| Idle Mode | Timed Session (15m) | Watch Downloads | Watch Application |
+| :---: | :---: | :---: | :---: |
+| <img src="assets/intro.jpg" width="220" alt="WakeUpNeo Idle Mode" /> | <img src="assets/start-15m.jpg" width="220" alt="WakeUpNeo Timed Session" /> | <img src="assets/start-download.jpg" width="220" alt="WakeUpNeo Watch Downloads" /> | <img src="assets/start-app.jpg" width="220" alt="WakeUpNeo Watch App" /> |
+| *Mac can sleep normally* | *Live remaining countdown* | *Auto-sleeps on download finish* | *Keeps awake while app runs* |
 
 </div>
 
@@ -35,7 +49,7 @@ Have you ever started a large download, long build, or video render, stepped awa
 **WakeUpNeo** solves this gracefully:
 - 🚀 **100% Native & Clean**: Pure SwiftUI and Apple `IOKit` / `ProcessInfo` power assertions. No Electron bloat, no background telemetry, no memory hogs.
 - 🎯 **Menu Bar Only**: Seamlessly lives in your menu bar. No messy Dock icon, no `Cmd+Tab` clutter (`LSUIElement = YES`).
-- 📥 **Smart Watchers**: Automatically detects active browser downloads (`.crdownload`, `.part`, `.download`, `.tmp`, etc.) or waits for export files to stabilize, then automatically allows your Mac to sleep once they finish!
+- 📥 **Smart Watchers**: Automatically detects active browser downloads (`.crdownload`, `.part`, `.download`, `.tmp`, etc.), monitors target export files, or watches running apps/processes.
 - 🔋 **Granular Power Control**: Keep your system awake while letting the screen sleep to save battery and display life, or enable clamshell protection when the laptop lid is closed.
 - ⏱️ **Drift-Proof Timers**: Computed directly from system clock deadlines — never loses seconds across sleep cycles.
 
@@ -91,6 +105,7 @@ Select the **WakeUpNeo** executable scheme and hit **Product → Run** (`Cmd + R
 | ⚡️ **One-Click Indefinite Mode** | Toggle sleep prevention on/off with a single click. Holds assertion until manually stopped. |
 | ⏱️ **Preset Timed Sessions** | Quick presets for **15m**, **30m**, **1h**, **2h**, **4h**, **8h**, or start indefinitely. |
 | 📥 **Active Downloads Watcher** | Keeps Mac awake while files are downloading in Chrome, Safari, Firefox, Opera, Brave, Aria2, etc. Automatically lets Mac sleep when downloads complete. |
+| 📱 **App & Process Watcher** | Monitors any active application or specific PID. Prevents sleep as long as that app/process remains running. |
 | 📄 **Target File Settle Watcher** | Select a specific target file (e.g. video export, tarball, archive). Mac stays awake until the file finishes writing and stabilizes. |
 | 💻 **Independent Power Assertions** | Independent toggles for **System Sleep**, **Display Sleep**, and **Lid-Close Sleep**. |
 | 🔔 **Native macOS Notifications** | Gentle alerts when sessions expire, downloads finish, or watched files complete. |
@@ -104,33 +119,17 @@ Select the **WakeUpNeo** executable scheme and hit **Product → Run** (`Cmd + R
 ### 1. Starting Sleep Prevention
 
 Click the **WakeUpNeo** eye icon in your top menu bar:
-- **Instant Indefinite Mode**: Toggle the **Prevent Sleep** switch on.
-- **Quick Preset**: Click any duration pill (**15m**, **30m**, **1h**, **2h**, etc.) to begin a timed session.
-- **Stop**: Toggle the switch off or click the active preset to cancel anytime.
+- **Instant Indefinite Mode**: Toggle the power button on the top right.
+- **Quick Preset**: Click any duration pill (**15m**, **30m**, **1h**, **2h**, **∞**) to begin a timed session.
+- **Stop**: Click the power button or the active preset button to stop anytime.
 
-```
-┌─────────────────────────────────┐
-│              👁️                 │
-│          WakeUpNeo              │
-│       00:44:12 remaining        │
-├─────────────────────────────────┤
-│ [🟢] Prevent Sleep              │
-├─────────────────────────────────┤
-│ Duration                        │
-│ [ 15m ] [ 30m ] [ 1h ] [ 2h ]   │
-│ [ 4h  ] [ 8h  ] [ ∞ ]           │
-│                                 │
-│ [ ] Keep Display Awake          │
-│ [ ] Prevent Lid Sleep           │
-├─────────────────────────────────┤
-│ Smart Watchers                  │
-│ [ ] Watch Downloads             │
-│ 📄 Wait for File…               │
-├─────────────────────────────────┤
-│ Settings…                    >  │
-│ Quit WakeUpNeo               ⌘Q │
-└─────────────────────────────────┘
-```
+<div align="center">
+
+| Idle / Normal State | Timed Session Active (15m) |
+| :---: | :---: |
+| <img src="assets/intro.jpg" width="270" alt="WakeUpNeo Idle UI" /><br><sub><em>Idle popover with Smart Watchers</em></sub> | <img src="assets/start-15m.jpg" width="270" alt="WakeUpNeo 15m Timer UI" /><br><sub><em>Active session with live countdown & power toggles</em></sub> |
+
+</div>
 
 ### 2. Power Settings Explained
 
@@ -146,17 +145,34 @@ WakeUpNeo gives you granular, independent control over macOS power management:
 
 ### Watch Downloads (Automatic Completion)
 
+<p align="center">
+  <img src="assets/start-download.jpg" width="280" alt="Watch Downloads UI" />
+</p>
+
 When downloading large files, games, OS images, or media, you don't need to guess how long it will take:
 
-1. Click the menu bar icon and toggle **Watch Downloads**.
+1. Click the menu bar icon and click **Start** on **Watch Downloads**.
 2. WakeUpNeo immediately inspects your `~/Downloads` folder for in-progress download extensions:
    - Chrome / Chromium: `.crdownload`
    - Safari: `.download` package bundles
    - Firefox: `.part`
    - General & Torrent Clients: `.tmp`, `.partial`, `.aria2`, `.!ut`, `.utpart`
    - Custom extensions defined in your Preferences
-3. The menu bar displays the number of active downloads in real time (e.g. `2 active`).
+3. The menu bar displays the active state in real time (`Watching for downloads`).
 4. Once all downloads finish and rename to their final formats, WakeUpNeo automatically releases all power assertions, posts a notification, and allows your Mac to sleep peacefully!
+
+### Watch App / Process (Application Lifecycle)
+
+<p align="center">
+  <img src="assets/start-app.jpg" width="280" alt="Watch App UI" />
+</p>
+
+Keep your Mac awake dynamically while long-running jobs, terminal scripts, model training, or background rendering apps execute:
+
+1. Click **Watch App…** from the Smart Watchers section.
+2. Select any active running macOS application (e.g. `iTerm2`, `Xcode`, `Blender`, `HandBrake`) or enter a custom process ID (PID).
+3. WakeUpNeo continuously monitors the process lifecycle without overhead.
+4. As soon as the selected app or PID terminates, sleep prevention is automatically released.
 
 ### Wait for File (Export / Render Stabilization)
 
