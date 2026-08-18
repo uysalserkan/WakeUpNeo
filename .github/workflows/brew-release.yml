@@ -1,0 +1,142 @@
+name: Homebrew Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag or number (e.g. 1.0.5 or v1.0.5 - leave empty for latest)'
+        required: false
+        type: string
+        default: ''
+      sha256:
+        description: 'SHA256 checksum of the release zip (optional, auto-detected if empty)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  update-cask:
+    name: Update Homebrew Cask
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout WakeUpNeo
+        uses: actions/checkout@v4
+
+      - name: Determine Version & Tag
+        id: resolve-version
+        run: |
+          INPUT_VERSION="${{ inputs.version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            RAW_VERSION="$INPUT_VERSION"
+          elif [ "${{ github.event_name }}" = "release" ]; then
+            RAW_VERSION="${{ github.event.release.tag_name }}"
+          else
+            echo "Fetching latest release from GitHub API..."
+            RAW_VERSION=$(gh release view -R uysalserkan/WakeUpNeo --json tagName -q .tagName)
+          fi
+
+          CLEAN_VERSION="${RAW_VERSION#v}"
+          TAG="v${CLEAN_VERSION}"
+
+          echo "version=${CLEAN_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${CLEAN_VERSION} (tag: ${TAG})"
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.TAP_TOKEN || secrets.GH_PAT || github.token }}
+
+      - name: Resolve SHA256 Checksum
+        id: resolve-sha
+        run: |
+          VERSION="${{ steps.resolve-version.outputs.version }}"
+          INPUT_SHA="${{ inputs.sha256 }}"
+
+          if [ -n "$INPUT_SHA" ]; then
+            SHA="$INPUT_SHA"
+          else
+            echo "Attempting to download SHA256 checksum file..."
+            SHA_FILE=$(gh release download "v${VERSION}" -R uysalserkan/WakeUpNeo -p "WakeUpNeo-${VERSION}-macOS.zip.sha256" -O - 2>/dev/null || true)
+            SHA=$(echo "$SHA_FILE" | awk '{print $1}')
+            
+            if [ -z "$SHA" ]; then
+              echo "Downloading ZIP to compute SHA256..."
+              TMP_ZIP=$(mktemp /tmp/WakeUpNeo-XXXXXX.zip)
+              gh release download "v${VERSION}" -R uysalserkan/WakeUpNeo -p "WakeUpNeo-${VERSION}-macOS.zip" -O "$TMP_ZIP"
+              SHA=$(shasum -a 256 "$TMP_ZIP" | awk '{print $1}')
+              rm -f "$TMP_ZIP"
+            fi
+          fi
+
+          if [ -z "$SHA" ]; then
+            echo "::error::Could not resolve SHA256 checksum for version ${VERSION}"
+            exit 1
+          fi
+
+          echo "sha256=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "Resolved SHA256: ${SHA}"
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.TAP_TOKEN || secrets.GH_PAT || github.token }}
+
+      - name: Checkout Homebrew Tap Repository
+        uses: actions/checkout@v4
+        with:
+          repository: uysalserkan/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.TAP_TOKEN || secrets.GH_PAT || github.token }}
+          path: homebrew-tap
+
+      - name: Generate & Update Cask Definition
+        run: |
+          VERSION="${{ steps.resolve-version.outputs.version }}"
+          SHA="${{ steps.resolve-sha.outputs.sha256 }}"
+          
+          mkdir -p homebrew-tap/Casks
+          CASK_PATH="homebrew-tap/Casks/wakeupneo.rb"
+
+          cat << EOF > "$CASK_PATH"
+cask "wakeupneo" do
+  version "${VERSION}"
+  sha256 "${SHA}"
+
+  url "https://github.com/uysalserkan/WakeUpNeo/releases/download/v#{version}/WakeUpNeo-#{version}-macOS.zip"
+  name "WakeUpNeo"
+  desc "Native macOS menu bar utility to prevent sleep during critical tasks"
+  homepage "https://github.com/uysalserkan/WakeUpNeo"
+
+  depends_on macos: :sequoia
+
+  app "WakeUpNeo.app"
+
+  zap trash: [
+    "~/Library/Application Support/com.wakeupneo.app",
+    "~/Library/Caches/com.wakeupneo.app",
+    "~/Library/Preferences/com.wakeupneo.app.plist",
+  ]
+end
+EOF
+
+          echo "Generated Cask:"
+          cat "$CASK_PATH"
+
+      - name: Validate Cask Syntax with Homebrew
+        run: |
+          brew install --cask --dry-run homebrew-tap/Casks/wakeupneo.rb
+
+      - name: Commit & Push to Homebrew Tap
+        run: |
+          VERSION="${{ steps.resolve-version.outputs.version }}"
+          cd homebrew-tap
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add Casks/wakeupneo.rb
+
+          if git diff --staged --quiet; then
+            echo "Homebrew Cask is already up to date for v${VERSION}."
+          else
+            git commit -m "Update wakeupneo cask to v${VERSION}"
+            git push origin main
+            echo "Successfully pushed update for v${VERSION} to uysalserkan/homebrew-tap!"
+          fi
