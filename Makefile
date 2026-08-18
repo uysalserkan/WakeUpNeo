@@ -101,7 +101,7 @@ brew-update:
 	mkdir -p "$$TAP_PATH/Casks"; \
 	CASK_FILE="$$TAP_PATH/Casks/wakeupneo.rb"; \
 	echo "Writing $$CASK_FILE..."; \
-	printf 'cask "wakeupneo" do\n  version "%s"\n  sha256 "%s"\n\n  url "https://github.com/%s/releases/download/v#{version}/WakeUpNeo-#{version}-macOS.zip"\n  name "WakeUpNeo"\n  desc "Native macOS menu bar utility to prevent sleep during critical tasks"\n  homepage "https://github.com/%s"\n\n  depends_on macos: :sequoia\n\n  app "WakeUpNeo.app"\n\n  zap trash: [\n    "~/Library/Application Support/com.wakeupneo.app",\n    "~/Library/Caches/com.wakeupneo.app",\n    "~/Library/Preferences/com.wakeupneo.app.plist",\n  ]\nend\n' "$$VERSION" "$$SHA" "$(GITHUB_REPO)" "$(GITHUB_REPO)" > "$$CASK_FILE"; \
+	printf 'cask "wakeupneo" do\n  version "%s"\n  sha256 "%s"\n\n  url "https://github.com/%s/releases/download/v#{version}/WakeUpNeo-#{version}-macOS.zip"\n  name "WakeUpNeo"\n  desc "Native macOS menu bar utility to prevent sleep during critical tasks"\n  homepage "https://github.com/%s"\n\n  depends_on macos: :sequoia\n\n  app "WakeUpNeo.app"\n\n  postflight do\n    system_command "xattr",\n                   args: ["-dr", "com.apple.quarantine", "#{appdir}/WakeUpNeo.app"],\n                   sudo: false\n  end\n\n  zap trash: [\n    "~/Library/Application Support/com.wakeupneo.app",\n    "~/Library/Caches/com.wakeupneo.app",\n    "~/Library/Preferences/com.wakeupneo.app.plist",\n  ]\nend\n' "$$VERSION" "$$SHA" "$(GITHUB_REPO)" "$(GITHUB_REPO)" > "$$CASK_FILE"; \
 	echo "Validating Cask syntax with Homebrew..."; \
 	brew install --cask --dry-run "$$CASK_FILE"; \
 	echo "Syncing changes to $(TAP_REPO)..."; \
