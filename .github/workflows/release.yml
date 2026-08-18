@@ -78,3 +78,35 @@ jobs:
             build/WakeUpNeo-${{ steps.version.outputs.version }}-macOS.zip.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew Cask in Tap
+        if: success()
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA=$(awk '{print $1}' "build/WakeUpNeo-${VERSION}-macOS.zip.sha256")
+          
+          echo "Updating Homebrew Cask to v${VERSION} (SHA256: ${SHA})..."
+          
+          git clone "https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN || secrets.TAP_TOKEN || secrets.GH_PAT || secrets.GITHUB_TOKEN }}@github.com/uysalserkan/homebrew-tap.git" tap_repo || {
+            echo "::warning::Could not clone homebrew-tap. Set HOMEBREW_TAP_TOKEN secret for automated cross-repo updates."
+            exit 0
+          }
+          
+          mkdir -p tap_repo/Casks
+          CASK_FILE="tap_repo/Casks/wakeupneo.rb"
+          
+          printf 'cask "wakeupneo" do\n  version "%s"\n  sha256 "%s"\n\n  url "https://github.com/uysalserkan/WakeUpNeo/releases/download/v#{version}/WakeUpNeo-#{version}-macOS.zip"\n  name "WakeUpNeo"\n  desc "Native macOS menu bar utility to prevent sleep during critical tasks"\n  homepage "https://github.com/uysalserkan/WakeUpNeo"\n\n  depends_on macos: :sequoia\n\n  app "WakeUpNeo.app"\n\n  zap trash: [\n    "~/Library/Application Support/com.wakeupneo.app",\n    "~/Library/Caches/com.wakeupneo.app",\n    "~/Library/Preferences/com.wakeupneo.app.plist",\n  ]\nend\n' "${VERSION}" "${SHA}" > "${CASK_FILE}"
+          
+          cd tap_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/wakeupneo.rb
+          
+          if git diff --staged --quiet; then
+            echo "Homebrew Cask is already up to date for v${VERSION}."
+          else
+            git commit -m "Update wakeupneo cask to v${VERSION}"
+            git push origin main || echo "::warning::Failed to push Cask update. Please ensure HOMEBREW_TAP_TOKEN secret is configured."
+            echo "Successfully updated Homebrew Cask in uysalserkan/homebrew-tap to v${VERSION}!"
+          fi
+
