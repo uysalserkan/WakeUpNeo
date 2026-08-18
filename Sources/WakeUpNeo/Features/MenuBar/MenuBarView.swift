@@ -5,17 +5,16 @@ import WakeUpNeoCore
 
 /// The main menu bar popover — the central UI surface in WakeUpNeo.
 ///
-/// Design goals:
+/// Designed to feel like a native macOS Control Center module:
 /// - Clean macOS material cards with clear visual hierarchy and balanced spacing.
-/// - No harsh 1px dividers: grouping is communicated through soft rounded cards,
-///   background materials, and deliberate typographic rhythm.
-/// - Power button in header, pill buttons for actions and options.
+/// - Native typography, system colors, and standard macOS interaction patterns.
 /// - Fully keyboard-navigable and VoiceOver-accessible.
 struct MenuBarView: View {
 
     @Environment(SleepManager.self)   private var manager
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openSettings)      private var openSettings
+    @Environment(\.colorScheme)       private var colorScheme
 
     @AppStorage(AppSettingsKeys.keepDisplayAwake) private var keepDisplayAwake = false
     @AppStorage(AppSettingsKeys.preventLidSleep)    private var preventLidSleep    = false
@@ -131,33 +130,10 @@ struct MenuBarView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     // Duration Preset Pills Row
                     HStack(spacing: 5) {
-                        ForEach(DefaultDuration.allCases) { preset in
-                            Button {
-                                manager.start(for: preset.rawValue)
-                            } label: {
-                                Text(preset.shortLabel)
-                                    .font(.system(size: 11, weight: .medium))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 4)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .clipShape(Capsule())
-                            .accessibilityLabel(preset.accessibilityLabel)
+                        ForEach(DefaultDuration.allCases, id: \.self) { preset in
+                            durationPresetButton(preset)
                         }
-
-                        Button {
-                            manager.startIndefinitely()
-                        } label: {
-                            Image(systemName: "infinity")
-                                .font(.system(size: 11, weight: .medium))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 4)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .clipShape(Capsule())
-                        .accessibilityLabel("Start indefinitely — no time limit")
+                        indefinitePresetButton
                     }
                     .padding(.top, 2)
 
@@ -177,7 +153,7 @@ struct MenuBarView: View {
                                     .font(.system(size: 10, weight: .semibold))
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 2)
-                                    .background(keepDisplayAwake ? Color.accentColor : Color.primary.opacity(0.08))
+                                    .background(keepDisplayAwake ? eyeColor : Color.primary.opacity(0.08))
                                     .foregroundStyle(keepDisplayAwake ? Color.white : Color.secondary)
                                     .clipShape(Capsule())
                             }
@@ -201,7 +177,7 @@ struct MenuBarView: View {
                                     .font(.system(size: 10, weight: .semibold))
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 2)
-                                    .background(preventLidSleep ? Color.accentColor : Color.primary.opacity(0.08))
+                                    .background(preventLidSleep ? eyeColor : Color.primary.opacity(0.08))
                                     .foregroundStyle(preventLidSleep ? Color.white : Color.secondary)
                                     .clipShape(Capsule())
                             }
@@ -217,14 +193,72 @@ struct MenuBarView: View {
             }
         }
         .padding(11)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.55))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.05), lineWidth: 0.5)
-        )
+        .nativeMacOSCard(isHighlighted: false)
+    }
+
+    @ViewBuilder
+    private func durationPresetButton(_ preset: DefaultDuration) -> some View {
+        let isCurrentPreset = manager.mode.isTimed && abs((manager.mode.endDate?.timeIntervalSinceNow ?? 0) - preset.rawValue) < 2
+        if isCurrentPreset {
+            Button {
+                manager.start(for: preset.rawValue)
+            } label: {
+                Text(preset.shortLabel)
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(eyeColor)
+            .controlSize(.small)
+            .clipShape(Capsule())
+            .accessibilityLabel(preset.accessibilityLabel)
+        } else {
+            Button {
+                manager.start(for: preset.rawValue)
+            } label: {
+                Text(preset.shortLabel)
+                    .font(.system(size: 11, weight: .medium))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .clipShape(Capsule())
+            .accessibilityLabel(preset.accessibilityLabel)
+        }
+    }
+
+    @ViewBuilder
+    private var indefinitePresetButton: some View {
+        if manager.mode.isIndefinite {
+            Button {
+                manager.startIndefinitely()
+            } label: {
+                Image(systemName: "infinity")
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(eyeColor)
+            .controlSize(.small)
+            .clipShape(Capsule())
+            .accessibilityLabel("Start indefinitely — no time limit")
+        } else {
+            Button {
+                manager.startIndefinitely()
+            } label: {
+                Image(systemName: "infinity")
+                    .font(.system(size: 11, weight: .medium))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .clipShape(Capsule())
+            .accessibilityLabel("Start indefinitely — no time limit")
+        }
     }
 
     // MARK: - 2. Smart Watchers Card
@@ -243,14 +277,7 @@ struct MenuBarView: View {
             }
         }
         .padding(11)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.55))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.05), lineWidth: 0.5)
-        )
+        .nativeMacOSCard(isHighlighted: false)
     }
 
     private var watchDownloadsRow: some View {
@@ -508,6 +535,7 @@ struct MenuBarView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .nativeMenuRowHover()
             .keyboardShortcut(",", modifiers: .command)
             .accessibilityLabel("Open Settings")
 
@@ -527,18 +555,12 @@ struct MenuBarView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .nativeMenuRowHover()
             .keyboardShortcut("q", modifiers: .command)
             .accessibilityLabel("Quit WakeUpNeo")
         }
         .padding(4)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.35))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.04), lineWidth: 0.5)
-        )
+        .nativeMacOSCard(cornerRadius: 10)
     }
 
     private func openSettingsWindow() {

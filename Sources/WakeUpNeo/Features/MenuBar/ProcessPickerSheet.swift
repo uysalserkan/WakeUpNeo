@@ -4,7 +4,8 @@ import WakeUpNeoCore
 
 // MARK: - ProcessPickerSheet
 
-/// Sheet/popover/window allowing the user to select a running application or specify a custom PID to monitor.
+/// Sheet/window allowing the user to select a running application or specify a custom PID to monitor.
+/// Uses native macOS controls and styling.
 struct ProcessPickerSheet: View {
 
     @Environment(\.dismiss) private var dismiss

@@ -5,9 +5,6 @@ import WakeUpNeoCore
 
 /// The Power tab in Settings: independent system-sleep and display-sleep
 /// toggles, with a contextual explanation.
-///
-/// System sleep and display sleep are intentionally separate — the default
-/// is to prevent system sleep while allowing the display to sleep.
 struct PowerSettingsView: View {
 
     @Environment(SleepManager.self) private var manager

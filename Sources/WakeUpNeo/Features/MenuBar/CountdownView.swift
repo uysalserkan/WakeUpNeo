@@ -3,17 +3,12 @@ import WakeUpNeoCore
 
 // MARK: - CountdownView
 
-/// Shows the session's remaining time or indefinite/monitoring status.
-///
-/// Countdown is derived from `SleepManager.remainingTime`, which is itself
-/// computed as `endDate.timeIntervalSinceNow` — never decremented —
-/// so it cannot drift over time.
+/// Shows the session's remaining time or indefinite/monitoring status with clean native macOS styling.
 struct CountdownView: View {
 
     let manager: SleepManager
 
-    /// Turns orange when fewer than 5 minutes remain, giving the user a
-    /// calm, non-distracting heads-up without any flashing or pulsing.
+    /// Turns orange when fewer than 5 minutes remain.
     private var isExpiringSoon: Bool {
         manager.remainingTime > 0 && manager.remainingTime < 300
     }

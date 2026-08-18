@@ -5,6 +5,7 @@ import WakeUpNeoCore
 
 /// The General tab in Settings: startup, countdown, appearance & color,
 /// notifications, default duration, and updates.
+/// Matches standard macOS System Settings conventions.
 struct GeneralSettingsView: View {
 
     @AppStorage(AppSettingsKeys.launchAtLogin)          private var launchAtLogin          = true

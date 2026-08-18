@@ -4,7 +4,7 @@ import WakeUpNeoCore
 // MARK: - AboutView
 
 /// About screen: app icon, name, version, Matrix tagline, and update status.
-/// Feels like a built-in macOS utility's About panel.
+/// Matches standard macOS About panel styling.
 struct AboutView: View {
 
     @Environment(AppEnvironment.self) private var env
@@ -76,7 +76,7 @@ struct AboutView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 36, height: 36)
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(Color.accentColor)
             }
         }
     }
@@ -96,7 +96,7 @@ struct AboutView: View {
             VStack(spacing: 10) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(Color.accentColor)
                     Text("Update Available: \(release.displayTitle)")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.primary)
