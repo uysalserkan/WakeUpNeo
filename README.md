@@ -59,13 +59,34 @@ Have you ever started a large download, long build, or video render, stepped awa
 
 ### Installation
 
-#### Option 1: Direct Download (Pre-built Release)
+#### Option 1: Homebrew (Recommended)
+
+Install WakeUpNeo via Homebrew Cask:
+
+```bash
+brew install uysalserkan/tap/wakeupneo
+```
+
+Or tap the repository and install:
+
+```bash
+brew tap uysalserkan/tap
+brew install --cask wakeupneo
+```
+
+To upgrade in the future:
+
+```bash
+brew upgrade --cask wakeupneo
+```
+
+#### Option 2: Direct Download (Pre-built Release)
 
 1. Download the latest `WakeUpNeo-macOS.zip` from [GitHub Releases](https://github.com/uysalserkan/WakeUpNeo/releases/latest).
 2. Unzip and drag `WakeUpNeo.app` into your `/Applications` folder.
 3. Launch WakeUpNeo — it will appear directly in your top menu bar!
 
-#### Option 2: One-Command Build & Install from Source (Recommended for Developers)
+#### Option 3: One-Command Build & Install from Source (Recommended for Developers)
 
 Clone the repository and install directly to `/Applications/WakeUpNeo.app`:
 
@@ -77,7 +98,7 @@ make install
 
 This compiles the release binary, creates the `.app` bundle, attaches the native app icon and metadata, code-signs with an ad-hoc signature, and places it in your `/Applications` folder.
 
-#### Option 3: Swift Package Manager (Build from Source)
+#### Option 4: Swift Package Manager (Build from Source)
 
 ```bash
 git clone https://github.com/uysalserkan/WakeUpNeo.git
@@ -87,7 +108,7 @@ swift build -c release
 
 The compiled binary will be located in `.build/release/WakeUpNeo`.
 
-#### Option 4: Open in Xcode
+#### Option 5: Open in Xcode
 
 ```bash
 open Package.swift
