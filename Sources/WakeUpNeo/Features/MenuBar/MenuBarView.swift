@@ -128,15 +128,26 @@ struct MenuBarView: View {
     /// MenuBarExtra `.window` panels do not reliably shrink to fit their content (or restore a
     /// stale larger frame), so we correct the window height explicitly whenever the content height
     /// changes or the panel becomes key again.
+    ///
+    /// Because AppKit window coordinates place the origin (0, 0) at the bottom-left corner of the
+    /// screen, modifying `frame.size.height` without adjusting `frame.origin.y` shifts the top edge
+    /// downwards when shrinking and upwards when expanding. By anchoring to `window.frame.maxY`
+    /// (the top edge under the menu bar), the window cleanly expands and shrinks in place without
+    /// drifting down the screen.
     private func applyPopoverContentHeight() {
         let window = popoverWindow
         let height = contentHeight
         DispatchQueue.main.async {
             guard let window, window.isVisible, height > 0 else { return }
-            let target = NSSize(width: 272, height: height)
-            guard abs(window.frame.size.height - target.height) > 1 else { return }
-            var newFrame = window.frame
-            newFrame.size = target
+            let targetHeight = height
+            guard abs(window.frame.size.height - targetHeight) > 1 else { return }
+            let topY = window.frame.maxY
+            let newFrame = NSRect(
+                x: window.frame.origin.x,
+                y: topY - targetHeight,
+                width: 272,
+                height: targetHeight
+            )
             window.setFrame(newFrame, display: true, animate: false)
         }
     }
