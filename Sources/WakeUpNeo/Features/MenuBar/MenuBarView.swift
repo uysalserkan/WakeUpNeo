@@ -58,7 +58,6 @@ struct MenuBarView: View {
         .padding(8)
         .frame(width: 272)
         .fixedSize(horizontal: false, vertical: true)
-        .animation(.easeInOut(duration: 0.22), value: shouldShowDurationSection)
         .alert("Unable to Prevent Sleep", isPresented: showError) {
             Button("Try Again") {
                 manager.clearError()
@@ -104,15 +103,13 @@ struct MenuBarView: View {
 
                 // Power Icon Button
                 Button {
-                    withAnimation(.easeInOut(duration: 0.22)) {
-                        if manager.isActive {
-                            manager.stop()
-                            isTimeSectionExpanded = false
-                        } else {
-                            let settings = AppSettings.load()
-                            manager.start(for: settings.defaultDuration.rawValue)
-                            isTimeSectionExpanded = true
-                        }
+                    if manager.isActive {
+                        manager.stop()
+                        isTimeSectionExpanded = false
+                    } else {
+                        let settings = AppSettings.load()
+                        manager.start(for: settings.defaultDuration.rawValue)
+                        isTimeSectionExpanded = true
                     }
                 } label: {
                     Image(systemName: manager.isActive ? "power.circle.fill" : "power.circle")
@@ -190,7 +187,6 @@ struct MenuBarView: View {
                     }
                     .padding(.top, 2)
                 }
-                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .padding(11)
@@ -305,10 +301,8 @@ struct MenuBarView: View {
             if manager.mode.isWatchingDownloads {
                 Button {
                     UserDefaults.standard.set(DefaultDuration.fifteenMinutes.rawValue, forKey: AppSettingsKeys.defaultDuration)
-                    withAnimation(.easeInOut(duration: 0.22)) {
-                        manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
-                        isTimeSectionExpanded = true
-                    }
+                    manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
+                    isTimeSectionExpanded = true
                 } label: {
                     Text("Stop")
                         .font(.system(size: 11, weight: .medium))
@@ -365,10 +359,8 @@ struct MenuBarView: View {
 
                 Button {
                     UserDefaults.standard.set(DefaultDuration.fifteenMinutes.rawValue, forKey: AppSettingsKeys.defaultDuration)
-                    withAnimation(.easeInOut(duration: 0.22)) {
-                        manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
-                        isTimeSectionExpanded = true
-                    }
+                    manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
+                    isTimeSectionExpanded = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -428,10 +420,8 @@ struct MenuBarView: View {
 
                 Button {
                     UserDefaults.standard.set(DefaultDuration.fifteenMinutes.rawValue, forKey: AppSettingsKeys.defaultDuration)
-                    withAnimation(.easeInOut(duration: 0.22)) {
-                        manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
-                        isTimeSectionExpanded = true
-                    }
+                    manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
+                    isTimeSectionExpanded = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)

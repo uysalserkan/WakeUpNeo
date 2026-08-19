@@ -62,7 +62,7 @@ jobs:
             
             if [ -z "$SHA" ]; then
               echo "Downloading ZIP to compute SHA256..."
-              TMP_ZIP=$(mktemp /tmp/WakeUpNeo-XXXXXX.zip)
+              TMP_ZIP=$(mktemp -t WakeUpNeo).zip
               gh release download "v${VERSION}" -R uysalserkan/WakeUpNeo -p "WakeUpNeo-${VERSION}-macOS.zip" -O "$TMP_ZIP"
               SHA=$(shasum -a 256 "$TMP_ZIP" | awk '{print $1}')
               rm -f "$TMP_ZIP"
