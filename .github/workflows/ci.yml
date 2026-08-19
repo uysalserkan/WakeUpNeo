@@ -21,6 +21,17 @@ jobs:
         xcode: ['16.0', '16.1', 'latest']
 
     steps:
+      - name: Run tests
+        run: pytest --junitxml=results.xml
+        continue-on-error: true   # let the upload step run even when tests fail
+
+      - name: Upload results to Qualflare
+        uses: Qualflare/qualflare-action@v1
+        with:
+          token: ${{ secrets.QF_TOKEN }}
+          project: WakeUpNeo
+          results: results.xml
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
