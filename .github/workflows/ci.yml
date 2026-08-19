@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Run tests
-        run: pytest --junitxml=results.xml
+        run: swift test --xunit-output report.xml
         continue-on-error: true   # let the upload step run even when tests fail
 
       - name: Upload results to Qualflare
@@ -30,7 +30,7 @@ jobs:
         with:
           token: ${{ secrets.QF_TOKEN }}
           project: wakeupneo
-          results: results.xml
+          results: report.xml
 
       - name: Checkout repository
         uses: actions/checkout@v4
