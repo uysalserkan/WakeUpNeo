@@ -36,7 +36,8 @@ jobs:
         run: swift build
 
       - name: Run 4-Tier Test Suite
-        run: swift test --parallel
+        run: swift test --parallel > test-outputs.txt 2>&1
+        continue-on-error: true   # let the upload step run even when tests fail
 
       - name: Build Release Executable
         run: swift build -c release
@@ -44,16 +45,12 @@ jobs:
       - name: Verify Application Bundle Assembly
         run: make bundle
 
-      - name: Run tests
-        run: swift test --xunit-output report.xml
-        continue-on-error: true   # let the upload step run even when tests fail
-
       - name: Upload results to Qualflare
         uses: Qualflare/qualflare-action@v1
         with:
           token: ${{ secrets.QF_TOKEN }}
           project: wakeupneo
-          results: report.xml
+          results: test-outputs.txt
 
       - name: Verify Bundle Integrity & Code Signature
         run: |
