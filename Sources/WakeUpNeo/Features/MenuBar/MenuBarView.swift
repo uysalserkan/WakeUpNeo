@@ -56,7 +56,8 @@ struct MenuBarView: View {
             footerCard
         }
         .padding(8)
-        .fixedSize()
+        .frame(width: 272)
+        .fixedSize(horizontal: false, vertical: true)
         .animation(.easeInOut(duration: 0.22), value: shouldShowDurationSection)
         .alert("Unable to Prevent Sleep", isPresented: showError) {
             Button("Try Again") {
