@@ -81,8 +81,8 @@ brew-update:
 	fi; \
 	if [ -z "$$SHA" ]; then \
 		echo "Downloading archive to compute SHA256..."; \
-		TMP_ZIP=$$(mktemp /tmp/$(APP_NAME)-XXXXXX.zip); \
-		gh release download "v$$VERSION" -R $(GITHUB_REPO) -p "$(APP_NAME)-$$VERSION-macOS.zip" -O "$$TMP_ZIP"; \
+TMP_ZIP=$$(mktemp -t $(APP_NAME)).zip; \
+		gh release download "$$VERSION" -R $(GITHUB_REPO) -p "$(APP_NAME)-$$VERSION-macOS.zip" -O "$$TMP_ZIP"; \
 		SHA=$$(shasum -a 256 "$$TMP_ZIP" | awk '{print $$1}'); \
 		rm -f "$$TMP_ZIP"; \
 	fi; \
