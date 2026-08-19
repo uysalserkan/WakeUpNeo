@@ -8,6 +8,7 @@
 
 A sleek, lightweight, native macOS menu bar utility that prevents your Mac from sleeping during critical tasks. Built from scratch with Swift 6, SwiftUI, and first-party Apple APIs — zero third-party dependencies, zero telemetry, 100% offline.
 
+[![Qualflare](https://api.qualflare.com/p/wakeupneo/badge.svg)](https://reports.qualflare.com/p/wakeupneo/launches)
 [![macOS 15+](https://img.shields.io/badge/macOS-15%2B-blue.svg?style=flat-square&logo=apple)](https://www.apple.com/macos/)
 [![Swift 6.0](https://img.shields.io/badge/Swift-6.0-F05138.svg?style=flat-square&logo=swift)](https://swift.org)
 [![CI](https://github.com/uysalserkan/WakeUpNeo/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uysalserkan/WakeUpNeo/actions/workflows/ci.yml)
