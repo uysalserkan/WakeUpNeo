@@ -38,60 +38,43 @@ struct MenuBarView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 1. Header (Identity, Live Countdown / Status, Power Toggle)
-            MenuBarHeaderView(manager: manager, eyeColor: eyeColor)
-                .padding(.horizontal, NativeTheme.horizontalPadding)
-                .padding(.top, NativeTheme.headerTopPadding)
-                .padding(.bottom, NativeTheme.headerBottomPadding)
+        VStack(spacing: NativeTheme.cardSpacing) {
+            // 1. Primary Controls Card (Header, Duration Pills, Power Options)
+            VStack(spacing: 12) {
+                MenuBarHeaderView(manager: manager, eyeColor: eyeColor)
 
-            // 2. Duration Selector (Single Unified Segmented Control)
-            DurationSelectorView(manager: manager, eyeColor: eyeColor)
-                .padding(.horizontal, NativeTheme.horizontalPadding)
-                .padding(.bottom, NativeTheme.sectionSpacing)
+                DurationSelectorView(manager: manager, eyeColor: eyeColor)
 
-            // 3. Sleep & Display Options (Native macOS Toggles)
-            PowerOptionsView(
-                keepDisplayAwake: $keepDisplayAwake,
-                preventLidSleep: $preventLidSleep,
-                manager: manager
-            )
-            .padding(.horizontal, NativeTheme.horizontalPadding)
-            .padding(.bottom, NativeTheme.sectionSpacing)
+                PowerOptionsView(
+                    keepDisplayAwake: $keepDisplayAwake,
+                    preventLidSleep: $preventLidSleep,
+                    manager: manager,
+                    activeColor: eyeColor
+                )
+            }
+            .liquidGlassCard()
 
-            // Subtle Divider
-            Divider()
-                .padding(.horizontal, NativeTheme.horizontalPadding)
-                .padding(.bottom, NativeTheme.dividerVerticalPadding)
+            // 2. Smart Watchers Card
+            SmartWatchersSectionView(manager: manager, eyeColor: eyeColor)
+                .liquidGlassCard()
 
-            // 4. Smart Watchers Section
-            SmartWatchersSectionView(manager: manager)
-                .padding(.horizontal, NativeTheme.horizontalPadding)
-                .padding(.bottom, NativeTheme.dividerVerticalPadding)
-
-            // 5. Optional Update Banner
+            // 3. Optional Update Banner Card
             if let release = env.updateManager.updateAvailable {
                 UpdateBannerView(release: release) { targetRelease in
                     env.updateManager.openDownloadLink(for: targetRelease)
                 }
-                .padding(.horizontal, NativeTheme.horizontalPadding)
-                .padding(.bottom, NativeTheme.dividerVerticalPadding)
+                .liquidGlassCard()
             }
 
-            // Subtle Divider
-            Divider()
-                .padding(.horizontal, NativeTheme.horizontalPadding)
-                .padding(.bottom, 8)
-
-            // 6. Footer Actions (Settings, Quit)
+            // 4. Footer Actions Card (Settings, Quit)
             MenuBarFooterView(
                 onOpenSettings: openSettingsWindow,
                 onQuit: { NSApplication.shared.terminate(nil) }
             )
-            .padding(.horizontal, NativeTheme.horizontalPadding)
-            .padding(.bottom, NativeTheme.footerBottomPadding)
+            .liquidGlassCard()
         }
-        .frame(width: NativeTheme.popoverWidth, alignment: .topLeading)
+        .padding(NativeTheme.outerPadding)
+        .frame(width: NativeTheme.popoverWidth)
         .alert("Unable to Prevent Sleep", isPresented: showError) {
             Button("Try Again") {
                 manager.clearError()

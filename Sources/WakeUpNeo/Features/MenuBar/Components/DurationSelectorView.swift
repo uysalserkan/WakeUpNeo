@@ -12,20 +12,11 @@ struct DurationSelectorView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 6) {
             ForEach(DefaultDuration.allCases, id: \.self) { preset in
                 durationSegment(preset)
             }
             indefiniteSegment
-        }
-        .padding(2)
-        .background {
-            RoundedRectangle(cornerRadius: NativeTheme.segmentedCornerRadius, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.6 : 0.8))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: NativeTheme.segmentedCornerRadius, style: .continuous)
-                .strokeBorder(Color(nsColor: .separatorColor).opacity(colorScheme == .dark ? 0.3 : 0.15), lineWidth: 0.5)
         }
     }
 
@@ -42,19 +33,14 @@ struct DurationSelectorView: View {
             manager.start(for: preset.rawValue)
         } label: {
             Text(preset.shortLabel)
-                .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
+                .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
                 .foregroundStyle(isSelected ? Color.white : Color.primary.opacity(0.85))
-                .frame(maxWidth: .infinity, minHeight: NativeTheme.segmentedHeight - 4)
-                .background {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: NativeTheme.innerSegmentCornerRadius, style: .continuous)
-                            .fill(manager.isActive ? eyeColor : Color.accentColor)
-                            .shadow(color: Color.black.opacity(0.12), radius: 1, y: 1)
-                    }
-                }
+                .frame(maxWidth: .infinity)
+                .frame(height: NativeTheme.pillHeight)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .liquidGlassPill(isSelected: isSelected, activeColor: eyeColor)
         .accessibilityLabel(preset.accessibilityLabel)
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
     }
@@ -69,19 +55,14 @@ struct DurationSelectorView: View {
             manager.startIndefinitely()
         } label: {
             Image(systemName: "infinity")
-                .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
+                .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
                 .foregroundStyle(isSelected ? Color.white : Color.primary.opacity(0.85))
-                .frame(maxWidth: .infinity, minHeight: NativeTheme.segmentedHeight - 4)
-                .background {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: NativeTheme.innerSegmentCornerRadius, style: .continuous)
-                            .fill(manager.isActive ? eyeColor : Color.accentColor)
-                            .shadow(color: Color.black.opacity(0.12), radius: 1, y: 1)
-                    }
-                }
+                .frame(maxWidth: .infinity)
+                .frame(height: NativeTheme.pillHeight)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .liquidGlassPill(isSelected: isSelected, activeColor: eyeColor)
         .accessibilityLabel("Keep awake indefinitely without time limit")
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
     }

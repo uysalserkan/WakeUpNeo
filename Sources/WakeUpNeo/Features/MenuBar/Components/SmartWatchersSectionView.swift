@@ -8,16 +8,16 @@ import WakeUpNeoCore
 struct SmartWatchersSectionView: View {
 
     let manager: SleepManager
+    var eyeColor: Color = .accentColor
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
             // Section Header Label
             Text("SMART WATCHERS")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .tracking(0.5)
-                .padding(.leading, 4)
-                .padding(.bottom, 2)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.secondary.opacity(0.75))
+                .tracking(0.6)
+                .padding(.leading, 2)
 
             // Watcher Rows Stack
             VStack(spacing: NativeTheme.rowSpacing) {
@@ -34,17 +34,17 @@ struct SmartWatchersSectionView: View {
         HStack(spacing: 8) {
             MenuRowIcon(
                 manager.mode.isWatchingDownloads ? "arrow.down.circle.fill" : "arrow.down.circle",
-                color: manager.mode.isWatchingDownloads ? Color.accentColor : Color.secondary
+                color: manager.mode.isWatchingDownloads ? eyeColor : Color.secondary
             )
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("Watch Downloads")
-                    .font(.body)
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.primary)
 
                 if case .watchingDownloads(let dir, let count) = manager.mode {
-                    Text(count > 0 ? "\(count) active (\(dir.lastPathComponent))" : "Watching \(dir.lastPathComponent)")
-                        .font(.caption)
+                    Text(count > 0 ? "\(count) active (\(dir.lastPathComponent))" : "Watching Downloads")
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -54,31 +54,42 @@ struct SmartWatchersSectionView: View {
             Spacer(minLength: 8)
 
             if manager.mode.isWatchingDownloads {
-                Button("Stop") {
+                Button {
                     UserDefaults.standard.set(DefaultDuration.fifteenMinutes.rawValue, forKey: AppSettingsKeys.defaultDuration)
                     manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
+                } label: {
+                    Text("Stop")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 58, height: 28)
+                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .buttonStyle(.plain)
+                .liquidGlassPill(isSelected: true, activeColor: eyeColor)
                 .accessibilityLabel("Stop watching downloads and sleep after 15 minutes")
                 .accessibilityValue("Active")
             } else {
-                Button("Start") {
+                Button {
                     let settings = AppSettings.load()
                     manager.startWatchingDownloads(
                         directory: settings.watchedDownloadsURL,
                         customExtensions: settings.parsedCustomExtensions
                     )
+                } label: {
+                    Text("Start")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 58, height: 28)
+                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                .buttonStyle(.plain)
+                .liquidGlassPill(isSelected: false)
                 .accessibilityLabel("Start watching downloads")
                 .accessibilityValue("Inactive")
             }
         }
-        .padding(.horizontal, NativeTheme.rowHorizontalPadding)
-        .padding(.vertical, NativeTheme.rowVerticalPadding)
-        .nativeMenuRowHover()
+        .padding(.horizontal, 4)
+        .padding(.vertical, 3)
     }
 
     // MARK: - 2. Wait for File Row
@@ -89,16 +100,16 @@ struct SmartWatchersSectionView: View {
             HStack(spacing: 8) {
                 MenuRowIcon(
                     manager.isStabilizingFile ? "arrow.triangle.2.circlepath" : "doc.badge.clock.fill",
-                    color: Color.accentColor
+                    color: eyeColor
                 )
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(manager.isStabilizingFile ? "Stabilizing File" : "Waiting for File")
-                        .font(.body)
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.primary)
 
                     Text(url.lastPathComponent)
-                        .font(.caption)
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -111,15 +122,14 @@ struct SmartWatchersSectionView: View {
                     manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary.opacity(0.8))
+                        .font(.system(size: 16))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Stop waiting for file and sleep after 15 minutes")
             }
-            .padding(.horizontal, NativeTheme.rowHorizontalPadding)
-            .padding(.vertical, NativeTheme.rowVerticalPadding)
-            .nativeMenuRowHover()
+            .padding(.horizontal, 4)
+            .padding(.vertical, 3)
         } else {
             Button {
                 FilePickerHelper.selectTargetFile { selectedURL in
@@ -134,18 +144,18 @@ struct SmartWatchersSectionView: View {
                 HStack(spacing: 8) {
                     MenuRowIcon("doc.badge.clock", color: .secondary)
 
-                    Text("Wait for File…")
-                        .font(.body)
+                    Text("Wait for File...")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.primary)
 
                     Spacer(minLength: 8)
 
                     Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary.opacity(0.5))
                 }
-                .padding(.horizontal, NativeTheme.rowHorizontalPadding)
-                .padding(.vertical, NativeTheme.rowVerticalPadding)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 4)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -161,15 +171,15 @@ struct SmartWatchersSectionView: View {
     private var watchAppRow: some View {
         if case .watchingProcess(let pid, let name, _) = manager.mode {
             HStack(spacing: 8) {
-                MenuRowIcon("app.badge.checkmark.fill", color: Color.accentColor)
+                MenuRowIcon("app.badge.checkmark.fill", color: eyeColor)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Watching App")
-                        .font(.body)
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.primary)
 
                     Text("\(name) (PID \(pid))")
-                        .font(.caption)
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -182,15 +192,14 @@ struct SmartWatchersSectionView: View {
                     manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary.opacity(0.8))
+                        .font(.system(size: 16))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Stop watching app and sleep after 15 minutes")
             }
-            .padding(.horizontal, NativeTheme.rowHorizontalPadding)
-            .padding(.vertical, NativeTheme.rowVerticalPadding)
-            .nativeMenuRowHover()
+            .padding(.horizontal, 4)
+            .padding(.vertical, 3)
         } else {
             Button {
                 ProcessPickerWindowController.shared.present { target in
@@ -204,18 +213,18 @@ struct SmartWatchersSectionView: View {
                 HStack(spacing: 8) {
                     MenuRowIcon("macwindow.badge.plus", color: .secondary)
 
-                    Text("Watch App…")
-                        .font(.body)
+                    Text("Watch App...")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.primary)
 
                     Spacer(minLength: 8)
 
                     Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary.opacity(0.5))
                 }
-                .padding(.horizontal, NativeTheme.rowHorizontalPadding)
-                .padding(.vertical, NativeTheme.rowVerticalPadding)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 4)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

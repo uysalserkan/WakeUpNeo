@@ -50,11 +50,35 @@ struct MenuBarHeaderView: View {
                     manager.start(for: settings.defaultDuration.rawValue)
                 }
             } label: {
-                Image(systemName: manager.isActive ? "power.circle.fill" : "power.circle")
-                    .font(.system(size: 26, weight: .regular))
-                    .foregroundStyle(manager.isActive ? eyeColor : Color.secondary.opacity(0.8))
-                    .symbolEffect(.bounce, value: manager.isActive)
-                    .contentShape(Circle())
+                ZStack {
+                    Circle()
+                        .fill(
+                            manager.isActive
+                                ? eyeColor
+                                : Color.white.opacity(0.08)
+                        )
+                        .frame(width: 32, height: 32)
+                        .overlay {
+                            Circle()
+                                .strokeBorder(
+                                    manager.isActive
+                                        ? Color.white.opacity(0.20)
+                                        : Color.white.opacity(0.12),
+                                    lineWidth: 0.75
+                                )
+                        }
+                        .shadow(
+                            color: manager.isActive ? eyeColor.opacity(0.40) : Color.clear,
+                            radius: 5,
+                            y: 2
+                        )
+
+                    Image(systemName: "power")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(manager.isActive ? Color.white : Color.primary.opacity(0.85))
+                        .symbolEffect(.bounce, value: manager.isActive)
+                }
+                .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(manager.isActive ? "Stop sleep prevention" : "Start sleep prevention")

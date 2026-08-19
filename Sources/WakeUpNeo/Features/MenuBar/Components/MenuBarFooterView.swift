@@ -19,18 +19,18 @@ struct MenuBarFooterView: View {
                 HStack(spacing: 8) {
                     MenuRowIcon("gearshape", color: .secondary)
 
-                    Text("Settings…")
-                        .font(.body)
+                    Text("Settings...")
+                        .font(.system(size: 13, weight: .regular))
                         .foregroundStyle(.primary)
 
                     Spacer(minLength: 8)
 
                     Text("⌘,")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(.secondary.opacity(0.6))
                 }
-                .padding(.horizontal, NativeTheme.rowHorizontalPadding)
-                .padding(.vertical, NativeTheme.rowVerticalPadding)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 4)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -46,17 +46,17 @@ struct MenuBarFooterView: View {
                     MenuRowIcon("power", color: .secondary)
 
                     Text("Quit WakeUpNeo")
-                        .font(.body)
+                        .font(.system(size: 13, weight: .regular))
                         .foregroundStyle(.primary)
 
                     Spacer(minLength: 8)
 
                     Text("⌘Q")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(.secondary.opacity(0.6))
                 }
-                .padding(.horizontal, NativeTheme.rowHorizontalPadding)
-                .padding(.vertical, NativeTheme.rowVerticalPadding)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 4)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
