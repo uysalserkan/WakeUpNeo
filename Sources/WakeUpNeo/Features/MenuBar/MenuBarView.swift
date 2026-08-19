@@ -70,12 +70,13 @@ struct MenuBarView: View {
     // MARK: - 1. Header & Duration Card
 
     private var headerCard: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 11) {
             // Top Row: App identity, active status, power toggle
             HStack(spacing: 10) {
                 Image(systemName: manager.isActive ? "eye.fill" : "eye.slash")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(eyeColor)
+                    .liquidGlow(color: eyeColor, radius: 10, isActive: manager.isActive)
                     .symbolEffect(.bounce, value: manager.isActive)
                     .accessibilityHidden(true)
 
@@ -105,8 +106,9 @@ struct MenuBarView: View {
                     }
                 } label: {
                     Image(systemName: manager.isActive ? "power.circle.fill" : "power.circle")
-                        .font(.system(size: 24, weight: .medium))
+                        .font(.system(size: 25, weight: .medium))
                         .foregroundStyle(eyeColor)
+                        .liquidGlow(color: eyeColor, radius: 12, isActive: manager.isActive)
                         .symbolEffect(.bounce, value: manager.isActive)
                 }
                 .buttonStyle(.plain)
@@ -116,7 +118,7 @@ struct MenuBarView: View {
             }
 
             // Duration & Power Options
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 9) {
                 // Duration Preset Pills Row
                 HStack(spacing: 5) {
                     ForEach(DefaultDuration.allCases, id: \.self) { preset in
@@ -124,7 +126,7 @@ struct MenuBarView: View {
                     }
                     indefinitePresetButton
                 }
-                .padding(.top, 2)
+                .padding(.top, 1)
 
                 // Power Option Pills
                 VStack(spacing: 5) {
@@ -135,20 +137,45 @@ struct MenuBarView: View {
                     } label: {
                         HStack {
                             Label("Keep Display Awake", systemImage: "sun.max")
-                                .font(.caption)
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.primary)
                             Spacer()
                             Text(keepDisplayAwake ? "On" : "Off")
                                 .font(.system(size: 10, weight: .semibold))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                                .background(keepDisplayAwake ? eyeColor : Color.primary.opacity(0.08))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 2.5)
+                                .background(
+                                    ZStack {
+                                        if keepDisplayAwake {
+                                            Capsule()
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [eyeColor.opacity(0.95), eyeColor.opacity(0.75)],
+                                                        startPoint: .top,
+                                                        endPoint: .bottom
+                                                    )
+                                                )
+                                        } else {
+                                            Capsule()
+                                                .fill(Color.primary.opacity(0.08))
+                                        }
+                                    }
+                                )
+                                .overlay {
+                                    if keepDisplayAwake {
+                                        Capsule()
+                                            .strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5)
+                                    }
+                                }
                                 .foregroundStyle(keepDisplayAwake ? Color.white : Color.secondary)
-                                .clipShape(Capsule())
+                                .shadow(color: keepDisplayAwake ? eyeColor.opacity(0.3) : .clear, radius: 4, y: 1)
                         }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .liquidMenuRowHover(cornerRadius: 8)
                     .accessibilityLabel("Keep Display Awake")
                     .accessibilityValue(keepDisplayAwake ? "On" : "Off")
 
@@ -159,93 +186,76 @@ struct MenuBarView: View {
                     } label: {
                         HStack {
                             Label("Prevent Lid Sleep", systemImage: "laptopcomputer")
-                                .font(.caption)
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.primary)
                             Spacer()
                             Text(preventLidSleep ? "On" : "Off")
                                 .font(.system(size: 10, weight: .semibold))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                                .background(preventLidSleep ? eyeColor : Color.primary.opacity(0.08))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 2.5)
+                                .background(
+                                    ZStack {
+                                        if preventLidSleep {
+                                            Capsule()
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [eyeColor.opacity(0.95), eyeColor.opacity(0.75)],
+                                                        startPoint: .top,
+                                                        endPoint: .bottom
+                                                    )
+                                                )
+                                        } else {
+                                            Capsule()
+                                                .fill(Color.primary.opacity(0.08))
+                                        }
+                                    }
+                                )
+                                .overlay {
+                                    if preventLidSleep {
+                                        Capsule()
+                                            .strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5)
+                                    }
+                                }
                                 .foregroundStyle(preventLidSleep ? Color.white : Color.secondary)
-                                .clipShape(Capsule())
+                                .shadow(color: preventLidSleep ? eyeColor.opacity(0.3) : .clear, radius: 4, y: 1)
                         }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .liquidMenuRowHover(cornerRadius: 8)
                     .accessibilityLabel("Prevent Lid Sleep")
                     .accessibilityValue(preventLidSleep ? "On" : "Off")
                 }
-                .padding(.top, 2)
+                .padding(.top, 1)
             }
         }
-        .padding(11)
-        .nativeMacOSCard(isHighlighted: false)
+        .padding(12)
+        .liquidGlassCard(isHighlighted: manager.isActive, glowColor: eyeColor)
     }
 
     @ViewBuilder
     private func durationPresetButton(_ preset: DefaultDuration) -> some View {
         let isCurrentPreset = manager.mode.isTimed && (manager.sessionDuration == preset.rawValue || abs((manager.mode.endDate?.timeIntervalSinceNow ?? 0) - preset.rawValue) < 2)
-        if isCurrentPreset {
-            Button {
-                manager.start(for: preset.rawValue)
-            } label: {
-                Text(preset.shortLabel)
-                    .font(.system(size: 11, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(eyeColor)
-            .controlSize(.small)
-            .clipShape(Capsule())
-            .accessibilityLabel(preset.accessibilityLabel)
-        } else {
-            Button {
-                manager.start(for: preset.rawValue)
-            } label: {
-                Text(preset.shortLabel)
-                    .font(.system(size: 11, weight: .medium))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .clipShape(Capsule())
-            .accessibilityLabel(preset.accessibilityLabel)
+        Button {
+            manager.start(for: preset.rawValue)
+        } label: {
+            Text(preset.shortLabel)
         }
+        .buttonStyle(LiquidGlassPillButtonStyle(isSelected: isCurrentPreset, tintColor: eyeColor))
+        .accessibilityLabel(preset.accessibilityLabel)
     }
 
     @ViewBuilder
     private var indefinitePresetButton: some View {
-        if manager.mode.isIndefinite {
-            Button {
-                manager.startIndefinitely()
-            } label: {
-                Image(systemName: "infinity")
-                    .font(.system(size: 11, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(eyeColor)
-            .controlSize(.small)
-            .clipShape(Capsule())
-            .accessibilityLabel("Start indefinitely — no time limit")
-        } else {
-            Button {
-                manager.startIndefinitely()
-            } label: {
-                Image(systemName: "infinity")
-                    .font(.system(size: 11, weight: .medium))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .clipShape(Capsule())
-            .accessibilityLabel("Start indefinitely — no time limit")
+        Button {
+            manager.startIndefinitely()
+        } label: {
+            Image(systemName: "infinity")
         }
+        .buttonStyle(LiquidGlassPillButtonStyle(isSelected: manager.mode.isIndefinite, tintColor: eyeColor))
+        .accessibilityLabel("Start indefinitely — no time limit")
     }
 
     // MARK: - 2. Smart Watchers Card
@@ -255,17 +265,16 @@ struct MenuBarView: View {
             Text("SMART WATCHERS")
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(.tertiary)
-                .padding(.horizontal, 2)
+                .padding(.horizontal, 4)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 4) {
                 watchDownloadsRow
                 waitForFileRow
                 watchProcessRow
             }
         }
         .padding(11)
-        .fixedSize(horizontal: false, vertical: true)
-        .nativeMacOSCard(isHighlighted: false)
+        .liquidGlassCard(isHighlighted: manager.mode.isWatchingDownloads || manager.mode.isWaitingForFile || manager.mode.isWatchingProcess)
     }
 
     private var watchDownloadsRow: some View {
@@ -285,6 +294,7 @@ struct MenuBarView: View {
             } icon: {
                 Image(systemName: manager.mode.isWatchingDownloads ? "arrow.down.circle.fill" : "arrow.down.circle")
                     .foregroundStyle(manager.mode.isWatchingDownloads ? Color.accentColor : Color.secondary)
+                    .liquidGlow(color: .accentColor, radius: 8, isActive: manager.mode.isWatchingDownloads)
             }
 
             Spacer(minLength: 4)
@@ -324,6 +334,7 @@ struct MenuBarView: View {
                 .accessibilityValue("Inactive")
             }
         }
+        .liquidMenuRowHover(cornerRadius: 8)
     }
 
     @ViewBuilder
@@ -343,6 +354,7 @@ struct MenuBarView: View {
                 } icon: {
                     Image(systemName: manager.isStabilizingFile ? "arrow.triangle.2.circlepath" : "doc.badge.clock.fill")
                         .foregroundStyle(Color.accentColor)
+                        .liquidGlow(color: .accentColor, radius: 8, isActive: true)
                 }
 
                 Spacer(minLength: 4)
@@ -358,6 +370,7 @@ struct MenuBarView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Stop waiting for file and sleep after 15 minutes")
             }
+            .liquidMenuRowHover(cornerRadius: 8)
         } else {
             Button {
                 FilePickerHelper.selectTargetFile { selectedURL in
@@ -381,6 +394,7 @@ struct MenuBarView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .liquidMenuRowHover(cornerRadius: 8)
             .accessibilityLabel("Wait for File")
             .accessibilityHint("Select a file to wait for completion before allowing sleep")
         }
@@ -403,6 +417,7 @@ struct MenuBarView: View {
                 } icon: {
                     Image(systemName: "app.badge.checkmark.fill")
                         .foregroundStyle(Color.accentColor)
+                        .liquidGlow(color: .accentColor, radius: 8, isActive: true)
                 }
 
                 Spacer(minLength: 4)
@@ -418,6 +433,7 @@ struct MenuBarView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Stop watching app and sleep after 15 minutes")
             }
+            .liquidMenuRowHover(cornerRadius: 8)
         } else {
             Button {
                 ProcessPickerWindowController.shared.present { target in
@@ -440,6 +456,7 @@ struct MenuBarView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .liquidMenuRowHover(cornerRadius: 8)
             .accessibilityLabel("Watch Application")
             .accessibilityHint("Select an application or process to keep Mac awake until it terminates")
         }
@@ -457,6 +474,7 @@ struct MenuBarView: View {
                     Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
                         .foregroundStyle(Color.accentColor)
                         .font(.system(size: 16))
+                        .liquidGlow(color: .accentColor, radius: 8, isActive: true)
 
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Update Available")
@@ -471,25 +489,30 @@ struct MenuBarView: View {
                     Spacer(minLength: 4)
 
                     Text("Update")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(Color.accentColor)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 3)
-                        .background(Color.accentColor.opacity(0.16))
-                        .clipShape(Capsule())
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                        )
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5)
+                        )
                 }
                 .padding(10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.accentColor.opacity(0.08))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color.accentColor.opacity(0.2), lineWidth: 0.5)
-                )
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .liquidGlassCard(cornerRadius: 10, isHighlighted: true, glowColor: .accentColor)
             .accessibilityLabel("Update Available: \(release.displayTitle). Click to update.")
         }
     }
@@ -503,18 +526,16 @@ struct MenuBarView: View {
             } label: {
                 HStack {
                     Label("Settings…", systemImage: "gearshape")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12, weight: .medium))
                     Spacer()
                     Text("⌘,")
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .contentShape(Rectangle())
+                .padding(.horizontal, 2)
             }
             .buttonStyle(.plain)
-            .nativeMenuRowHover()
+            .liquidMenuRowHover(cornerRadius: 6)
             .keyboardShortcut(",", modifiers: .command)
             .accessibilityLabel("Open Settings")
 
@@ -523,24 +544,21 @@ struct MenuBarView: View {
             } label: {
                 HStack {
                     Label("Quit WakeUpNeo", systemImage: "power")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12, weight: .medium))
                     Spacer()
                     Text("⌘Q")
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .contentShape(Rectangle())
+                .padding(.horizontal, 2)
             }
             .buttonStyle(.plain)
-            .nativeMenuRowHover()
+            .liquidMenuRowHover(cornerRadius: 6)
             .keyboardShortcut("q", modifiers: .command)
             .accessibilityLabel("Quit WakeUpNeo")
         }
-        .padding(4)
-        .fixedSize(horizontal: false, vertical: true)
-        .nativeMacOSCard(cornerRadius: 10)
+        .padding(5)
+        .liquidGlassCard(cornerRadius: 10)
     }
 
     private func openSettingsWindow() {

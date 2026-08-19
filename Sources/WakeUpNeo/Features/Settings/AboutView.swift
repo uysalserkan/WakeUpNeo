@@ -65,19 +65,31 @@ struct AboutView: View {
             Image(nsImage: icon)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 64, height: 64)
+                .frame(width: 68, height: 68)
+                .liquidGlow(color: Color.accentColor, radius: 12, isActive: true)
         } else {
             ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.quaternary)
-                    .frame(width: 64, height: 64)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.accentColor.opacity(0.85), Color.accentColor.opacity(0.60)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 68, height: 68)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.4), lineWidth: 0.75)
+                    }
 
                 Image(systemName: "eye.fill")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 36, height: 36)
-                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 38, height: 38)
+                    .foregroundStyle(Color.white)
             }
+            .liquidGlow(color: Color.accentColor, radius: 14, isActive: true)
         }
     }
 
@@ -97,6 +109,7 @@ struct AboutView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
                         .foregroundStyle(Color.accentColor)
+                        .liquidGlow(color: .accentColor, radius: 6, isActive: true)
                     Text("Update Available: \(release.displayTitle)")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.primary)
@@ -118,10 +131,7 @@ struct AboutView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(.quaternary)
-            )
+            .liquidGlassCard(cornerRadius: 10, isHighlighted: true, glowColor: .accentColor)
         } else {
             VStack(spacing: 8) {
                 if updateManager.isUpToDate {
