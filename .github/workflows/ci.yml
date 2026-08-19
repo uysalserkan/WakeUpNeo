@@ -21,17 +21,6 @@ jobs:
         xcode: ['16.0', '16.1', 'latest']
 
     steps:
-      - name: Run tests
-        run: swift test --xunit-output report.xml
-        continue-on-error: true   # let the upload step run even when tests fail
-
-      - name: Upload results to Qualflare
-        uses: Qualflare/qualflare-action@v1
-        with:
-          token: ${{ secrets.QF_TOKEN }}
-          project: wakeupneo
-          results: report.xml
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -54,6 +43,17 @@ jobs:
 
       - name: Verify Application Bundle Assembly
         run: make bundle
+
+      - name: Run tests
+        run: swift test --xunit-output report.xml
+        continue-on-error: true   # let the upload step run even when tests fail
+
+      - name: Upload results to Qualflare
+        uses: Qualflare/qualflare-action@v1
+        with:
+          token: ${{ secrets.QF_TOKEN }}
+          project: wakeupneo
+          results: report.xml
 
       - name: Verify Bundle Integrity & Code Signature
         run: |
