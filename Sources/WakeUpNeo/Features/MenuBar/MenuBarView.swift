@@ -90,14 +90,14 @@ struct MenuBarView: View {
             footerCard
         }
         .padding(8)
+        .frame(width: 272, alignment: .top)
+        .fixedSize(horizontal: true, vertical: true)
         .background(
             GeometryReader { proxy in
                 Color.clear
                     .preference(key: PopoverContentHeightKey.self, value: proxy.size.height)
             }
         )
-        .frame(width: 272)
-        .fixedSize(horizontal: false, vertical: true)
         .background(PopoverWindowAccessor { popoverWindow = $0 })
         .onPreferenceChange(PopoverContentHeightKey.self) { height in
             guard height > 0 else { return }
@@ -139,8 +139,14 @@ struct MenuBarView: View {
         let height = contentHeight
         DispatchQueue.main.async {
             guard let window, window.isVisible, height > 0 else { return }
-            let targetHeight = height
+            let targetHeight = ceil(height)
             guard abs(window.frame.size.height - targetHeight) > 1 else { return }
+
+            // Allow the panel window to shrink by resetting any minimum size constraints
+            window.minSize = NSSize(width: 272, height: 0)
+            window.contentMinSize = NSSize(width: 272, height: 0)
+            window.maxSize = NSSize(width: 272, height: 10000)
+
             let topY = window.frame.maxY
             let newFrame = NSRect(
                 x: window.frame.origin.x,
@@ -149,6 +155,7 @@ struct MenuBarView: View {
                 height: targetHeight
             )
             window.setFrame(newFrame, display: true, animate: false)
+            window.contentView?.layoutSubtreeIfNeeded()
         }
     }
 
@@ -269,6 +276,7 @@ struct MenuBarView: View {
             }
         }
         .padding(11)
+        .fixedSize(horizontal: false, vertical: true)
         .nativeMacOSCard(isHighlighted: false)
     }
 
@@ -353,6 +361,7 @@ struct MenuBarView: View {
             }
         }
         .padding(11)
+        .fixedSize(horizontal: false, vertical: true)
         .nativeMacOSCard(isHighlighted: false)
     }
 
@@ -630,6 +639,7 @@ struct MenuBarView: View {
             .accessibilityLabel("Quit WakeUpNeo")
         }
         .padding(4)
+        .fixedSize(horizontal: false, vertical: true)
         .nativeMacOSCard(cornerRadius: 10)
     }
 
