@@ -26,7 +26,7 @@ public final class UpdateManager {
     public let service: UpdateCheckerService
 
     public var currentVersionString: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.5"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.16"
     }
 
     public var currentBuildString: String {

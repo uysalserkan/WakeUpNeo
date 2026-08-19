@@ -21,12 +21,13 @@ struct CountdownView: View {
 
             case .indefinite:
                 Label("Active indefinitely", systemImage: "infinity")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
 
             case .timed:
                 Text(formattedRemaining)
-                    .font(.caption)
+                    .font(.subheadline)
+                    .monospacedDigit()
                     .foregroundStyle(isExpiringSoon ? Color.orange : .secondary)
                     .contentTransition(.numericText(countsDown: true))
                     .animation(.easeInOut(duration: 0.3), value: manager.remainingTime)
@@ -36,7 +37,7 @@ struct CountdownView: View {
                     activeCount > 0 ? "\(activeCount) active \(activeCount == 1 ? "download" : "downloads")" : "Watching for downloads",
                     systemImage: "arrow.down.circle"
                 )
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(activeCount > 0 ? Color.accentColor : Color.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -47,7 +48,7 @@ struct CountdownView: View {
                         "Stabilizing \(url.lastPathComponent)…",
                         systemImage: "arrow.triangle.2.circlepath"
                     )
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(Color.accentColor)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -56,7 +57,7 @@ struct CountdownView: View {
                         "Waiting for \(url.lastPathComponent)",
                         systemImage: "doc.badge.clock"
                     )
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -67,7 +68,7 @@ struct CountdownView: View {
                     "Watching \(name) (\(pid))",
                     systemImage: "cpu"
                 )
-                .font(.caption)
+                .font(.subheadline)
                 .foregroundStyle(Color.accentColor)
                 .lineLimit(1)
                 .truncationMode(.middle)

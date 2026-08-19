@@ -68,7 +68,9 @@ enum SnapshotRenderer {
             .environment(\.colorScheme, colorScheme)
             .background(colorScheme == .dark ? Color(nsColor: .windowBackgroundColor) : Color(nsColor: .controlBackgroundColor))
 
+        let appearance = NSAppearance(named: colorScheme == .dark ? .darkAqua : .aqua)
         let hostingView = NSHostingView(rootView: view)
+        hostingView.appearance = appearance
         let fittingSize = hostingView.fittingSize
         let width: CGFloat = NativeTheme.popoverWidth
         let height: CGFloat = fittingSize.height > 0 ? fittingSize.height : 376
@@ -80,6 +82,7 @@ enum SnapshotRenderer {
             backing: .buffered,
             defer: false
         )
+        window.appearance = appearance
         window.backgroundColor = .clear
         window.isOpaque = false
         window.contentView = hostingView
