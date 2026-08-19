@@ -71,13 +71,11 @@ brew-update:
 	fi; \
 	echo "Updating Homebrew Cask for $(APP_NAME) v$$VERSION..."; \
 	SHA=""; \
-	if [ -f "build/$(APP_NAME)-$$VERSION-macOS.zip.sha256" ]; then \
+	echo "Fetching SHA256 checksum from GitHub release assets..."; \
+	SHA_FILE=$$(gh release download "v$$VERSION" -R $(GITHUB_REPO) -p "$(APP_NAME)-$$VERSION-macOS.zip.sha256" -O - 2>/dev/null || true); \
+	SHA=$$(echo "$$SHA_FILE" | awk '{print $$1}'); \
+	if [ -z "$$SHA" ] && [ -f "build/$(APP_NAME)-$$VERSION-macOS.zip.sha256" ]; then \
 		SHA=$$(awk '{print $$1}' "build/$(APP_NAME)-$$VERSION-macOS.zip.sha256"); \
-	fi; \
-	if [ -z "$$SHA" ]; then \
-		echo "Fetching SHA256 checksum from GitHub release assets..."; \
-		SHA_FILE=$$(gh release download "v$$VERSION" -R $(GITHUB_REPO) -p "$(APP_NAME)-$$VERSION-macOS.zip.sha256" -O - 2>/dev/null || true); \
-		SHA=$$(echo "$$SHA_FILE" | awk '{print $$1}'); \
 	fi; \
 	if [ -z "$$SHA" ]; then \
 		echo "Downloading archive to compute SHA256..."; \
