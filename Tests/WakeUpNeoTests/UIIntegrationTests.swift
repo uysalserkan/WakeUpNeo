@@ -445,54 +445,34 @@ final class UIIntegrationTests: XCTestCase {
         XCTAssertEqual(ActiveIconColor(rawValue: "invalid"), nil)
     }
 
-    // MARK: - 7. Popover Window Anchoring Geometry
+    // MARK: - 7. Session Duration Tracking
 
-    func testPopoverWindowTopAnchorResizing() {
-        // Simulates a MenuBarExtra window positioned just under the menu bar at y = 900 (top edge).
-        // AppKit coordinates: maxY = origin.y + height
-        let initialTopY: CGFloat = 900
-        let collapsedHeight: CGFloat = 200
-        let expandedHeight: CGFloat = 380
-        let windowWidth: CGFloat = 272
-
-        var frame = NSRect(
-            x: 1000,
-            y: initialTopY - collapsedHeight,
-            width: windowWidth,
-            height: collapsedHeight
+    func testSessionDurationTracking() {
+        let composite = CompositeSleepService(
+            systemSleepService: MockSleepService(),
+            displaySleepService: MockSleepService(),
+            lidSleepService: MockSleepService()
         )
-        XCTAssertEqual(frame.maxY, initialTopY, "Initial top edge should match menu bar anchor")
+        let manager = SleepManager(compositeService: composite)
 
-        // Helper replicating applyPopoverContentHeight logic
-        func resizeFrame(current: NSRect, targetHeight: CGFloat) -> NSRect {
-            let topY = current.maxY
-            return NSRect(
-                x: current.origin.x,
-                y: topY - targetHeight,
-                width: 272,
-                height: targetHeight
-            )
-        }
+        XCTAssertNil(manager.sessionDuration)
+        XCTAssertFalse(manager.isActive)
 
-        // 1. User clicks power button ON -> Expand
-        frame = resizeFrame(current: frame, targetHeight: expandedHeight)
-        XCTAssertEqual(frame.size.height, expandedHeight)
-        XCTAssertEqual(frame.maxY, initialTopY, "Top edge must remain fixed after expansion")
-        XCTAssertEqual(frame.origin.y, initialTopY - expandedHeight, "Origin Y must adjust downwards")
+        manager.start(for: 1800)
+        XCTAssertEqual(manager.sessionDuration, 1800)
+        XCTAssertTrue(manager.isActive)
 
-        // 2. User clicks power button OFF -> Collapse
-        frame = resizeFrame(current: frame, targetHeight: collapsedHeight)
-        XCTAssertEqual(frame.size.height, collapsedHeight)
-        XCTAssertEqual(frame.maxY, initialTopY, "Top edge must remain fixed after collapse")
-        XCTAssertEqual(frame.origin.y, initialTopY - collapsedHeight, "Origin Y must adjust upwards")
+        manager.start(for: 3600)
+        XCTAssertEqual(manager.sessionDuration, 3600)
+        XCTAssertTrue(manager.isActive)
 
-        // 3. User clicks power button 10 times consecutively
-        for _ in 0..<10 {
-            frame = resizeFrame(current: frame, targetHeight: expandedHeight)
-            XCTAssertEqual(frame.maxY, initialTopY, "Top edge must not drift down when expanding repeatedly")
-            frame = resizeFrame(current: frame, targetHeight: collapsedHeight)
-            XCTAssertEqual(frame.maxY, initialTopY, "Top edge must not drift down when collapsing repeatedly")
-        }
+        manager.startIndefinitely()
+        XCTAssertNil(manager.sessionDuration)
+        XCTAssertTrue(manager.isActive)
+
+        manager.stop()
+        XCTAssertNil(manager.sessionDuration)
+        XCTAssertFalse(manager.isActive)
     }
 }
 

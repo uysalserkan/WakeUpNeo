@@ -23,6 +23,7 @@ public final class SleepManager {
 
     public private(set) var mode:              SleepMode    = .off
     public private(set) var remainingTime:     TimeInterval  = 0
+    public private(set) var sessionDuration:   TimeInterval? = nil
     public private(set) var activeDownloads:   [String]      = []
     public private(set) var isStabilizingFile: Bool          = false
     public private(set) var lastError:         Error?        = nil
@@ -79,15 +80,16 @@ public final class SleepManager {
     /// Start a timed session that ends `duration` seconds from now.
     public func start(for duration: TimeInterval) {
         let endDate = Date.now.addingTimeInterval(duration)
-        start(until: endDate)
+        start(until: endDate, duration: duration)
     }
 
     /// Start a timed session that ends at the given absolute `Date`.
-    public func start(until endDate: Date) {
+    public func start(until endDate: Date, duration: TimeInterval? = nil) {
         stop()
         do {
             try activateServices()
             mode              = .timed(until: endDate)
+            sessionDuration   = duration ?? max(0, endDate.timeIntervalSinceNow)
             remainingTime     = max(0, endDate.timeIntervalSinceNow)
             activeDownloads   = []
             isStabilizingFile = false
@@ -299,6 +301,7 @@ public final class SleepManager {
         compositeService.stopAll()
         mode              = .off
         remainingTime     = 0
+        sessionDuration   = nil
         activeDownloads   = []
         isStabilizingFile = false
         logger.info("[Power] Session stopped")

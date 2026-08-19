@@ -15,6 +15,15 @@ struct WakeUpNeoApp: App {
 
     @State private var env = AppEnvironment()
 
+    init() {
+        let args = ProcessInfo.processInfo.arguments
+        if let idx = args.firstIndex(of: "--snapshot"), idx + 1 < args.count {
+            let outputDir = args[idx + 1]
+            SnapshotRenderer.generateSnapshots(outputDir: outputDir)
+            exit(0)
+        }
+    }
+
     var body: some Scene {
         // MARK: Menu Bar
         MenuBarExtra {
@@ -34,3 +43,55 @@ struct WakeUpNeoApp: App {
         }
     }
 }
+
+// MARK: - Snapshot Renderer (Visual Verification Tooling)
+
+@MainActor
+enum SnapshotRenderer {
+    static func generateSnapshots(outputDir: String) {
+        render(isActive: false, filename: "menu_inactive.png", outputDir: outputDir)
+        render(isActive: true, filename: "menu_active.png", outputDir: outputDir)
+    }
+
+    private static func render(isActive: Bool, filename: String, outputDir: String) {
+        let env = AppEnvironment()
+        if isActive {
+            env.sleepManager.start(for: 3600)
+        } else {
+            env.sleepManager.stop()
+        }
+
+        let view = MenuBarView()
+            .environment(env.sleepManager)
+            .environment(env)
+            .environment(\.colorScheme, .dark)
+            .padding(8)
+            .background(Color(nsColor: .windowBackgroundColor))
+
+        let hostingView = NSHostingView(rootView: view)
+        let fittingSize = hostingView.fittingSize
+        let width: CGFloat = 272 + 16
+        let height: CGFloat = fittingSize.height > 0 ? fittingSize.height : 360
+        hostingView.frame = NSRect(origin: .zero, size: NSSize(width: width, height: height))
+
+        let window = NSWindow(
+            contentRect: hostingView.frame,
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.contentView = hostingView
+        hostingView.layoutSubtreeIfNeeded()
+
+        guard let bitmap = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) else { return }
+        hostingView.cacheDisplay(in: hostingView.bounds, to: bitmap)
+
+        guard let pngData = bitmap.representation(using: .png, properties: [:]) else { return }
+        let url = URL(fileURLWithPath: outputDir).appendingPathComponent(filename)
+        try? pngData.write(to: url)
+        print("Generated snapshot: \(url.path) (size: \(width)x\(height))")
+    }
+}
+

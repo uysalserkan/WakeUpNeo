@@ -2,36 +2,6 @@ import SwiftUI
 import Combine
 import WakeUpNeoCore
 
-// MARK: - Popover Window Sizing
-
-/// Reports the popover content's natural height so the panel window can be forced to match it.
-///
-/// MenuBarExtra `.window` panels do not reliably shrink (or restore) their window to fit the
-/// content, leaving the popover stuck at a stale, taller height with the content floating in an
-/// empty space. Measuring the content height and applying it to the window keeps the panel
-/// perfectly sized in both the collapsed and expanded states.
-private struct PopoverContentHeightKey: PreferenceKey {
-    nonisolated(unsafe) static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
-/// Bridges the popover's `NSWindow` into SwiftUI so its size can be corrected.
-private struct PopoverWindowAccessor: NSViewRepresentable {
-    var onWindow: (NSWindow?) -> Void
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async { onWindow(view.window) }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async { onWindow(nsView.window) }
-    }
-}
-
 // MARK: - MenuBarView
 
 /// The main menu bar popover — the central UI surface in WakeUpNeo.
@@ -51,11 +21,6 @@ struct MenuBarView: View {
     @AppStorage(AppSettingsKeys.preventLidSleep)    private var preventLidSleep    = false
     @AppStorage(AppSettingsKeys.activeIconColor)   private var activeIconColorRaw = "red"
 
-    @State private var isTimeSectionExpanded = false
-
-    @State private var popoverWindow: NSWindow?
-    @State private var contentHeight: CGFloat = 0
-
     // Error alert binding
     private var showError: Binding<Bool> {
         Binding(
@@ -67,10 +32,6 @@ struct MenuBarView: View {
     private var eyeColor: Color {
         guard manager.isActive else { return .secondary }
         return (ActiveIconColor(rawValue: activeIconColorRaw) ?? .red).color
-    }
-
-    private var shouldShowDurationSection: Bool {
-        isTimeSectionExpanded || manager.isActive
     }
 
     var body: some View {
@@ -90,24 +51,7 @@ struct MenuBarView: View {
             footerCard
         }
         .padding(8)
-        .frame(width: 272, alignment: .top)
-        .fixedSize(horizontal: true, vertical: true)
-        .background(
-            GeometryReader { proxy in
-                Color.clear
-                    .preference(key: PopoverContentHeightKey.self, value: proxy.size.height)
-            }
-        )
-        .background(PopoverWindowAccessor { popoverWindow = $0 })
-        .onPreferenceChange(PopoverContentHeightKey.self) { height in
-            guard height > 0 else { return }
-            contentHeight = height
-            applyPopoverContentHeight()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
-            guard let window = notification.object as? NSWindow, window === popoverWindow else { return }
-            applyPopoverContentHeight()
-        }
+        .frame(width: 272)
         .alert("Unable to Prevent Sleep", isPresented: showError) {
             Button("Try Again") {
                 manager.clearError()
@@ -120,42 +64,6 @@ struct MenuBarView: View {
             if let error = manager.lastError {
                 Text(error.localizedDescription)
             }
-        }
-    }
-
-    /// Forces the popover panel window to exactly match the content's natural size.
-    ///
-    /// MenuBarExtra `.window` panels do not reliably shrink to fit their content (or restore a
-    /// stale larger frame), so we correct the window height explicitly whenever the content height
-    /// changes or the panel becomes key again.
-    ///
-    /// Because AppKit window coordinates place the origin (0, 0) at the bottom-left corner of the
-    /// screen, modifying `frame.size.height` without adjusting `frame.origin.y` shifts the top edge
-    /// downwards when shrinking and upwards when expanding. By anchoring to `window.frame.maxY`
-    /// (the top edge under the menu bar), the window cleanly expands and shrinks in place without
-    /// drifting down the screen.
-    private func applyPopoverContentHeight() {
-        let window = popoverWindow
-        let height = contentHeight
-        DispatchQueue.main.async {
-            guard let window, window.isVisible, height > 0 else { return }
-            let targetHeight = ceil(height)
-            guard abs(window.frame.size.height - targetHeight) > 1 else { return }
-
-            // Allow the panel window to shrink by resetting any minimum size constraints
-            window.minSize = NSSize(width: 272, height: 0)
-            window.contentMinSize = NSSize(width: 272, height: 0)
-            window.maxSize = NSSize(width: 272, height: 10000)
-
-            let topY = window.frame.maxY
-            let newFrame = NSRect(
-                x: window.frame.origin.x,
-                y: topY - targetHeight,
-                width: 272,
-                height: targetHeight
-            )
-            window.setFrame(newFrame, display: true, animate: false)
-            window.contentView?.layoutSubtreeIfNeeded()
         }
     }
 
@@ -191,11 +99,9 @@ struct MenuBarView: View {
                 Button {
                     if manager.isActive {
                         manager.stop()
-                        isTimeSectionExpanded = false
                     } else {
                         let settings = AppSettings.load()
                         manager.start(for: settings.defaultDuration.rawValue)
-                        isTimeSectionExpanded = true
                     }
                 } label: {
                     Image(systemName: manager.isActive ? "power.circle.fill" : "power.circle")
@@ -209,80 +115,77 @@ struct MenuBarView: View {
                 .accessibilityHint("Click to toggle sleep prevention")
             }
 
-            // Expandable Duration & Power Options
-            if shouldShowDurationSection {
-                VStack(alignment: .leading, spacing: 8) {
-                    // Duration Preset Pills Row
-                    HStack(spacing: 5) {
-                        ForEach(DefaultDuration.allCases, id: \.self) { preset in
-                            durationPresetButton(preset)
-                        }
-                        indefinitePresetButton
+            // Duration & Power Options
+            VStack(alignment: .leading, spacing: 8) {
+                // Duration Preset Pills Row
+                HStack(spacing: 5) {
+                    ForEach(DefaultDuration.allCases, id: \.self) { preset in
+                        durationPresetButton(preset)
                     }
-                    .padding(.top, 2)
-
-                    // Power Option Pills
-                    VStack(spacing: 5) {
-                        // Keep Display Awake Pill
-                        Button {
-                            keepDisplayAwake.toggle()
-                            manager.keepDisplayAwake = keepDisplayAwake
-                        } label: {
-                            HStack {
-                                Label("Keep Display Awake", systemImage: "sun.max")
-                                    .font(.caption)
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                Text(keepDisplayAwake ? "On" : "Off")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(keepDisplayAwake ? eyeColor : Color.primary.opacity(0.08))
-                                    .foregroundStyle(keepDisplayAwake ? Color.white : Color.secondary)
-                                    .clipShape(Capsule())
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Keep Display Awake")
-                        .accessibilityValue(keepDisplayAwake ? "On" : "Off")
-
-                        // Prevent Lid Sleep Pill
-                        Button {
-                            preventLidSleep.toggle()
-                            manager.preventLidSleep = preventLidSleep
-                        } label: {
-                            HStack {
-                                Label("Prevent Lid Sleep", systemImage: "laptopcomputer")
-                                    .font(.caption)
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                Text(preventLidSleep ? "On" : "Off")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(preventLidSleep ? eyeColor : Color.primary.opacity(0.08))
-                                    .foregroundStyle(preventLidSleep ? Color.white : Color.secondary)
-                                    .clipShape(Capsule())
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Prevent Lid Sleep")
-                        .accessibilityValue(preventLidSleep ? "On" : "Off")
-                    }
-                    .padding(.top, 2)
+                    indefinitePresetButton
                 }
+                .padding(.top, 2)
+
+                // Power Option Pills
+                VStack(spacing: 5) {
+                    // Keep Display Awake Pill
+                    Button {
+                        keepDisplayAwake.toggle()
+                        manager.keepDisplayAwake = keepDisplayAwake
+                    } label: {
+                        HStack {
+                            Label("Keep Display Awake", systemImage: "sun.max")
+                                .font(.caption)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Text(keepDisplayAwake ? "On" : "Off")
+                                .font(.system(size: 10, weight: .semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(keepDisplayAwake ? eyeColor : Color.primary.opacity(0.08))
+                                .foregroundStyle(keepDisplayAwake ? Color.white : Color.secondary)
+                                .clipShape(Capsule())
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Keep Display Awake")
+                    .accessibilityValue(keepDisplayAwake ? "On" : "Off")
+
+                    // Prevent Lid Sleep Pill
+                    Button {
+                        preventLidSleep.toggle()
+                        manager.preventLidSleep = preventLidSleep
+                    } label: {
+                        HStack {
+                            Label("Prevent Lid Sleep", systemImage: "laptopcomputer")
+                                .font(.caption)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Text(preventLidSleep ? "On" : "Off")
+                                .font(.system(size: 10, weight: .semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(preventLidSleep ? eyeColor : Color.primary.opacity(0.08))
+                                .foregroundStyle(preventLidSleep ? Color.white : Color.secondary)
+                                .clipShape(Capsule())
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Prevent Lid Sleep")
+                    .accessibilityValue(preventLidSleep ? "On" : "Off")
+                }
+                .padding(.top, 2)
             }
         }
         .padding(11)
-        .fixedSize(horizontal: false, vertical: true)
         .nativeMacOSCard(isHighlighted: false)
     }
 
     @ViewBuilder
     private func durationPresetButton(_ preset: DefaultDuration) -> some View {
-        let isCurrentPreset = manager.mode.isTimed && abs((manager.mode.endDate?.timeIntervalSinceNow ?? 0) - preset.rawValue) < 2
+        let isCurrentPreset = manager.mode.isTimed && (manager.sessionDuration == preset.rawValue || abs((manager.mode.endDate?.timeIntervalSinceNow ?? 0) - preset.rawValue) < 2)
         if isCurrentPreset {
             Button {
                 manager.start(for: preset.rawValue)
@@ -390,7 +293,6 @@ struct MenuBarView: View {
                 Button {
                     UserDefaults.standard.set(DefaultDuration.fifteenMinutes.rawValue, forKey: AppSettingsKeys.defaultDuration)
                     manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
-                    isTimeSectionExpanded = true
                 } label: {
                     Text("Stop")
                         .font(.system(size: 11, weight: .medium))
@@ -448,7 +350,6 @@ struct MenuBarView: View {
                 Button {
                     UserDefaults.standard.set(DefaultDuration.fifteenMinutes.rawValue, forKey: AppSettingsKeys.defaultDuration)
                     manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
-                    isTimeSectionExpanded = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -509,7 +410,6 @@ struct MenuBarView: View {
                 Button {
                     UserDefaults.standard.set(DefaultDuration.fifteenMinutes.rawValue, forKey: AppSettingsKeys.defaultDuration)
                     manager.start(for: DefaultDuration.fifteenMinutes.rawValue)
-                    isTimeSectionExpanded = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
