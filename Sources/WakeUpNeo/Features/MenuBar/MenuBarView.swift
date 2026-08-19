@@ -1,5 +1,36 @@
 import SwiftUI
+import Combine
 import WakeUpNeoCore
+
+// MARK: - Popover Window Sizing
+
+/// Reports the popover content's natural height so the panel window can be forced to match it.
+///
+/// MenuBarExtra `.window` panels do not reliably shrink (or restore) their window to fit the
+/// content, leaving the popover stuck at a stale, taller height with the content floating in an
+/// empty space. Measuring the content height and applying it to the window keeps the panel
+/// perfectly sized in both the collapsed and expanded states.
+private struct PopoverContentHeightKey: PreferenceKey {
+    nonisolated(unsafe) static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+/// Bridges the popover's `NSWindow` into SwiftUI so its size can be corrected.
+private struct PopoverWindowAccessor: NSViewRepresentable {
+    var onWindow: (NSWindow?) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { onWindow(view.window) }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { onWindow(nsView.window) }
+    }
+}
 
 // MARK: - MenuBarView
 
@@ -21,6 +52,9 @@ struct MenuBarView: View {
     @AppStorage(AppSettingsKeys.activeIconColor)   private var activeIconColorRaw = "red"
 
     @State private var isTimeSectionExpanded = false
+
+    @State private var popoverWindow: NSWindow?
+    @State private var contentHeight: CGFloat = 0
 
     // Error alert binding
     private var showError: Binding<Bool> {
@@ -56,8 +90,24 @@ struct MenuBarView: View {
             footerCard
         }
         .padding(8)
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .preference(key: PopoverContentHeightKey.self, value: proxy.size.height)
+            }
+        )
         .frame(width: 272)
         .fixedSize(horizontal: false, vertical: true)
+        .background(PopoverWindowAccessor { popoverWindow = $0 })
+        .onPreferenceChange(PopoverContentHeightKey.self) { height in
+            guard height > 0 else { return }
+            contentHeight = height
+            applyPopoverContentHeight()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
+            guard let window = notification.object as? NSWindow, window === popoverWindow else { return }
+            applyPopoverContentHeight()
+        }
         .alert("Unable to Prevent Sleep", isPresented: showError) {
             Button("Try Again") {
                 manager.clearError()
@@ -70,6 +120,24 @@ struct MenuBarView: View {
             if let error = manager.lastError {
                 Text(error.localizedDescription)
             }
+        }
+    }
+
+    /// Forces the popover panel window to exactly match the content's natural size.
+    ///
+    /// MenuBarExtra `.window` panels do not reliably shrink to fit their content (or restore a
+    /// stale larger frame), so we correct the window height explicitly whenever the content height
+    /// changes or the panel becomes key again.
+    private func applyPopoverContentHeight() {
+        let window = popoverWindow
+        let height = contentHeight
+        DispatchQueue.main.async {
+            guard let window, window.isVisible, height > 0 else { return }
+            let target = NSSize(width: 272, height: height)
+            guard abs(window.frame.size.height - target.height) > 1 else { return }
+            var newFrame = window.frame
+            newFrame.size = target
+            window.setFrame(newFrame, display: true, animate: false)
         }
     }
 
