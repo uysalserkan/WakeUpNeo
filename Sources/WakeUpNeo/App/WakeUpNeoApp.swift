@@ -49,11 +49,12 @@ struct WakeUpNeoApp: App {
 @MainActor
 enum SnapshotRenderer {
     static func generateSnapshots(outputDir: String) {
-        render(isActive: false, filename: "menu_inactive.png", outputDir: outputDir)
-        render(isActive: true, filename: "menu_active.png", outputDir: outputDir)
+        render(isActive: false, colorScheme: .dark, filename: "menu_inactive.png", outputDir: outputDir)
+        render(isActive: true, colorScheme: .dark, filename: "menu_active.png", outputDir: outputDir)
+        render(isActive: false, colorScheme: .light, filename: "menu_light.png", outputDir: outputDir)
     }
 
-    private static func render(isActive: Bool, filename: String, outputDir: String) {
+    private static func render(isActive: Bool, colorScheme: ColorScheme, filename: String, outputDir: String) {
         let env = AppEnvironment()
         if isActive {
             env.sleepManager.start(for: 3600)
@@ -64,14 +65,13 @@ enum SnapshotRenderer {
         let view = MenuBarView()
             .environment(env.sleepManager)
             .environment(env)
-            .environment(\.colorScheme, .dark)
-            .padding(8)
-            .background(Color(nsColor: .windowBackgroundColor))
+            .environment(\.colorScheme, colorScheme)
+            .background(colorScheme == .dark ? Color(nsColor: .windowBackgroundColor) : Color(nsColor: .controlBackgroundColor))
 
         let hostingView = NSHostingView(rootView: view)
         let fittingSize = hostingView.fittingSize
-        let width: CGFloat = 272 + 16
-        let height: CGFloat = fittingSize.height > 0 ? fittingSize.height : 360
+        let width: CGFloat = NativeTheme.popoverWidth
+        let height: CGFloat = fittingSize.height > 0 ? fittingSize.height : 376
         hostingView.frame = NSRect(origin: .zero, size: NSSize(width: width, height: height))
 
         let window = NSWindow(
