@@ -36,7 +36,7 @@ jobs:
         run: swift build
 
       - name: Run 4-Tier Test Suite
-        run: swift test --parallel > test-outputs.txt 2>&1
+        run: swift test --parallel --xunit-output=test-results.xml
         continue-on-error: true   # let the upload step run even when tests fail
 
       - name: Build Release Executable
@@ -50,7 +50,7 @@ jobs:
         with:
           token: ${{ secrets.QF_TOKEN }}
           project: wakeupneo
-          results: test-outputs.txt
+          results: test-results.xml
 
       - name: Verify Bundle Integrity & Code Signature
         run: |
